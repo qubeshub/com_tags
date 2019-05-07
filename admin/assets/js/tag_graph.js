@@ -24,7 +24,7 @@ jQuery(function(jq)
 		window.publicationTypes = cdata.ptypes;
 	}
 
-	var root = $('#tag-sel').attr('action');
+	var root = $('#tag-sel').length > 0 ? $('#tag-sel').attr('action') : '';
 	root += (root.indexOf('?') == -1) ? '?' : '&';
 
 	var tag_editors = function(json)
@@ -112,6 +112,21 @@ jQuery(function(jq)
 		});
 	};
 
+	function dragstart(d) {
+		if (!d3.event.active) force.alphaTarget(0.3).restart();
+		d.fx = d.x;
+		d.fy = d.y;
+	}
+
+	function dragmove(d) {
+		d.fx = d3.event.x;
+		d.fy = d3.event.y;
+	}
+
+	function dragend(d) {
+		if (!d3.event.active) force.alphaTarget(0);
+	}
+
 	var center = function(tag)
 	{
 		$('#graph, #labels, #labeled, #parents, #children').empty();
@@ -121,7 +136,7 @@ jQuery(function(jq)
 			.append("svg:svg")
 			.attr("width", w)
 			.attr("height", h);
-		d3.json(root + 'task=implicit&tag=' + tag, function(json) 
+		d3.json(root + 'task=implicit&tag=' + tag).then(function(json)
 		{
 			$('#description').val(json.description);
 			$('.tag-id').val(json.id);
@@ -129,13 +144,14 @@ jQuery(function(jq)
 			tag_editors(json);
 			$('#metadata-cont').css('display', 'block');
 			$('#graph').css('background', '#fff');
-			var force = d3.layout.force()
-				.charge(-312)
-				.linkDistance(250)
-				.nodes(json.nodes)
-				.links(json.links)
-				.size([w, h - 50])
-				.start();
+			var force = d3.forceSimulation(json.nodes)
+				.force("charge", d3.forceManyBody().strength(-312))
+				.force("link", d3.forceLink()
+					.distance(250)
+					.links(json.links))
+				//.size([w, h - 50])
+				.force("center", d3.forceCenter(w /2, (350 / 2) - 50));
+				//.start();
 
 			var link = vis.selectAll("line.link")
 				.data(json.links)
@@ -156,7 +172,10 @@ jQuery(function(jq)
 					.attr("rx", 5)
 					.attr('ry', 5)
 					.style("fill", function(d) { return d.tag == $('#center-node').val() || d.raw_tag == $('#center-node').val() ? '#79a' : '#cdf'; })
-					.call(force.drag)
+					.call(d3.drag()
+						.on("start", dragstart)
+						.on("drag", dragmove)
+						.on("end", dragend))
 					.on('click', function(n)
 					{
 						$('#center-node').val(n.raw_tag);
@@ -205,8 +224,10 @@ jQuery(function(jq)
 			.append("svg:svg")
 			.attr("width", w)
 			.attr("height", 400);
-		d3.json(root + 'task=hierarchy&tag=' + tag, function(json) 
+
+		d3.json(root + 'task=hierarchy&tag=' + tag).then(function(json)
 		{
+
 			$('#description').val(json.description);
 			$('.tag-id').val(json.id);
 			$('.tag-count').text(json.count);
@@ -214,13 +235,12 @@ jQuery(function(jq)
 
 			$('#metadata-cont').css('display', 'block');
 			$('#graph').css('background', '#fff');
-			var force = d3.layout.force()
-				.charge(-100)
-				.linkDistance(200)
-				.nodes(json.nodes)
-				.links(json.links)
-				.size([w, 350])
-				.start();
+			var force = d3.forceSimulation(json.nodes)
+				.force("charge", d3.forceManyBody().strength(-100))
+				.force("link", d3.forceLink()
+					.distance(200)
+					.links(json.links))
+				.force("center", d3.forceCenter(w /2, 350 / 2));
 
 			var link = vis.selectAll("line.link")
 				.data(json.links)
@@ -231,6 +251,8 @@ jQuery(function(jq)
 					.attr("y1", function(d) { return d.source.y; })
 					.attr("x2", function(d) { return d.target.x; })
 					.attr("y2", function(d) { return d.target.y; });
+
+			var visc = document.querySelector("#graph>canvas");
 
 			var node = vis.selectAll("circle.node")
 				.data(json.nodes)
@@ -250,7 +272,10 @@ jQuery(function(jq)
 								 ? '#cfd'
 								 : '#cdf';
 					})
-					.call(force.drag)
+					.call(d3.drag()
+						.on("start", dragstart)
+						.on("drag", dragmove)
+						.on("end", dragend))
 					.on('click', function(n)
 					{
 						$('#center-node').val(n.raw_tag);
@@ -258,10 +283,10 @@ jQuery(function(jq)
 					});
 
 			var labels = vis.selectAll('circle.node')
-			.data(json.nodes)
-			.enter().append('svg:text')
-				.attr('font-size', '10px')
-				.text(function(d) { return d.raw_tag; });
+				.data(json.nodes)
+				.enter().append('svg:text')
+					.attr('font-size', '10px')
+					.text(function(d) { return d.raw_tag; });
 
 			node.append("svg:title")
 				.text(function(d) { return 'center graph on ' + d.raw_tag; });
