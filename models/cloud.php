@@ -366,9 +366,10 @@ class Cloud extends \Hubzero\Base\Obj
 	 *
 	 * @param   mixed    $tags    Array or string of tags
 	 * @param   integer  $tagger  ID of user to remove tags for
+	 * @param	string	 $label	  Tag relationship
 	 * @return  mixed    False if errors, integer on success
 	 */
-	public function remove($tags, $tagger=0)
+	public function remove($tags, $tagger=0, $label='')
 	{
 		if (!$this->_scope_id)
 		{
@@ -394,7 +395,7 @@ class Cloud extends \Hubzero\Base\Obj
 			}
 
 			// Remove tag from object
-			if (!$tag->removeFrom($this->_scope, $this->_scope_id, $tagger))
+			if (!$tag->removeFrom($this->_scope, $this->_scope_id, $tagger, $label))
 			{
 				$this->setError($tag->getError());
 			}
@@ -408,9 +409,10 @@ class Cloud extends \Hubzero\Base\Obj
 	 * Option User ID to remove tags added by just that user.
 	 *
 	 * @param   string  $tagger  User ID to remove tags for
+	 * @param	string	$label	  Tag relationship
 	 * @return  mixed   False if errors, integer on success
 	 */
-	public function removeAll($tagger=0)
+	public function removeAll($tagger=0, $label=null)
 	{
 		if (!$this->_scope_id)
 		{
@@ -422,6 +424,9 @@ class Cloud extends \Hubzero\Base\Obj
 			->whereEquals('tbl', $this->_scope)
 			->whereEquals('objectid', $this->_scope_id);
 
+		if ($label !== null) {
+			$to->whereEquals('label', $label);
+		}
 		if ($tagger)
 		{
 			$to->whereEquals('taggerid', $tagger);
@@ -568,7 +573,7 @@ class Cloud extends \Hubzero\Base\Obj
 				if (!in_array($tagItem->get('tag'), $tagArray))
 				{
 					// We need to delete old tags that don't appear in the new parsed string.
-					$this->remove($tagItem->get('tag')); //, ($admin ? 0 : $tagger_id));
+					$this->remove($tagItem->get('tag'), $label); //, ($admin ? 0 : $tagger_id));
 				}
 				else
 				{

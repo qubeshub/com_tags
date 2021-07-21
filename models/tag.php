@@ -387,12 +387,13 @@ class Tag extends Relational
 	 * @param   string   $scope     Object type (ex: resource, ticket)
 	 * @param   integer  $scope_id  Object ID (e.g., resource ID, ticket ID)
 	 * @param   integer  $tagger    User ID of person to filter tag by
+	 * @param 	string	 $label	 	Tag relationship (e.g., parent, focus area)
 	 * @return  boolean
 	 */
-	public function removeFrom($scope, $scope_id, $tagger=0)
+	public function removeFrom($scope, $scope_id, $tagger=0, $label='')
 	{
 		// Check if the relationship exists
-		$to = Objct::oneByScoped($scope, $scope_id, $this->get('id'), $tagger);
+		$to = Objct::oneByScoped($scope, $scope_id, $this->get('id'), $tagger, $label);
 
 		if (!$to->get('id'))
 		{
@@ -422,7 +423,7 @@ class Tag extends Relational
 
 		if ($result)
 		{
-			$arr = array('object_id' => $to->get('id'), 'tagger_id' => $tagger);
+			$arr = array('object_id' => $to->get('id'), 'tagger_id' => $tagger, 'relationship' => $label);
 			$log = Log::blank();
 			$log->set('tag_id', $this->get('id'));
 			$log->set('action', 'tag_removed');
@@ -440,13 +441,13 @@ class Tag extends Relational
 	 * @param   integer  $scope_id  Object ID (e.g., resource ID, ticket ID)
 	 * @param   integer  $tagger    User ID of person adding tag
 	 * @param   integer  $strength  Tag strength
-	 * @param   string   $label     Label to apply
+	 * @param   string   $label     Tag relationship to apply
 	 * @return  boolean
 	 */
 	public function addTo($scope, $scope_id, $tagger=0, $strength=1, $label='')
 	{
 		// Check if the relationship already exists
-		$to = Objct::oneByScoped($scope, $scope_id, $this->get('id'), $tagger);
+		$to = Objct::oneByScoped($scope, $scope_id, $this->get('id'), $tagger, $label);
 
 		if ($to->get('id'))
 		{
@@ -484,7 +485,7 @@ class Tag extends Relational
 
 		if ($result)
 		{
-			$arr = array('object_id' => $to->get('id'), 'tagger_id' => $tagger);
+			$arr = array('object_id' => $to->get('id'), 'tagger_id' => $tagger, 'relationship' => $label);
 			$log = Log::blank();
 			$log->set('tag_id', $this->get('id'));
 			$log->set('action', 'tag_added');

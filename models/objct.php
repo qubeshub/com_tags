@@ -63,7 +63,8 @@ class Objct extends Relational
 	protected $rules = array(
 		'tbl'      => 'notempty',
 		'tagid'    => 'positive|nonzero',
-		'objectid' => 'positive|nonzero'
+		'objectid' => 'positive|nonzero',
+		'label'	   => 'notempty'
 	);
 
 	/**
@@ -157,14 +158,16 @@ class Objct extends Relational
 	 * @param   integer  $scope_id  Object ID (e.g., resource ID, ticket ID)
 	 * @param   integer  $tag_id    Tag ID
 	 * @param   integer  $tagger    User ID of person adding tag
+	 * @param	string	 $label		Label specifying relationship for tagging
 	 * @return  mixed
 	 **/
-	public static function oneByScoped($scope, $scope_id, $tag_id, $tagger=0)
+	public static function oneByScoped($scope, $scope_id, $tag_id, $tagger=0, $label='')
 	{
 		$instance = self::blank()
 			->whereEquals('tbl', $scope)
 			->whereEquals('objectid', $scope_id)
-			->whereEquals('tagid', $tag_id);
+			->whereEquals('tagid', $tag_id)
+			->whereEquals('label', $label);
 
 		if ($tagger)
 		{
@@ -196,11 +199,12 @@ class Objct extends Relational
 
 		foreach ($items as $item)
 		{
-			// Find if there is already a database row with the same object and tag. Delete the item then.
+			// Find if there is already a database row with the same object, tag, and label. Delete the item then.
 			$duplicates = self::all()
 				->whereEquals('tbl', $item->get('tbl'))
 				->whereEquals('tagid', $newtagid)
 				->whereEquals('objectid', $item->get('objectid'))
+				->whereEquals('label', $item->get('label'))
 				->rows();
 			if ($duplicates->count())
 			{
@@ -242,6 +246,7 @@ class Objct extends Relational
 		  ->whereEquals('tbl', $tagAssocData['tbl'])
 		  ->whereEquals('objectid', $tagAssocData['objectid'])
 		  ->whereEquals('tagid', $tagAssocData['tagid'])
+		  ->whereEquals('label', $tagAssocData['label'])
 		  ->rows()
 		  ->count();
 
