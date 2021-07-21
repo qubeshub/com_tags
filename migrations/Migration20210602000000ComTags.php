@@ -12,7 +12,7 @@ class Migration20210602000000ComTags extends Base
 	 **/
 	public function up()
 	{
-		if ($this->db->tableExists('#__tags_object') && !$this->db->tableHasKey('#__tags_object', 'unique_tag_per_obj'))
+		if ($this->db->tableExists('#__tags_object') && $this->db->tableHasKey('#__tags_object', 'unique_tag_per_obj'))
 		{
 			$query = "ALTER TABLE `#__tags_object` DROP INDEX unique_tag_per_obj, 
                 ADD UNIQUE KEY `unique_tag_per_obj` (`objectid`, `tagid`, `tbl`, `label`)";
@@ -26,7 +26,7 @@ class Migration20210602000000ComTags extends Base
 	 **/
 	public function down()
 	{
-		if ($this->db->tableExists('#__tags_object') && !$this->db->tableHasKey('#__tags_object', 'unique_tag_per_obj'))
+		if ($this->db->tableExists('#__tags_object') && $this->db->tableHasKey('#__tags_object', 'unique_tag_per_obj'))
 		{
 			$query = "ALTER TABLE `#__tags_object` DROP INDEX unique_tag_per_obj, 
                 ADD UNIQUE KEY `unique_tag_per_obj` (`objectid`, `tagid`, `tbl`)";
