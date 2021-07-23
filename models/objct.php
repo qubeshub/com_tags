@@ -235,17 +235,6 @@ class Objct extends Relational
 	}
 
 	/**
-	 * Checks if a particular objct has a tag
-	 *
-	 * @param   integer  $tagid  ID of tag to check 
-	 * @return  boolean  True if Objct has tag 
-	 */
-	public static function hasTag($tagid=null)
-	{
-		return (bool)($tagid && self::all()->whereEquals('tagid', $tagid)->rows());
-	}
-
-	/**
 	 * Copy all tags on an object to another object
 	 *
 	 * @param   integer  $oldtagid  ID of tag to be copied
@@ -263,7 +252,7 @@ class Objct extends Relational
 			->whereEquals('tagid', $oldtagid)
 			->rows();
 
-		if ($rows && !self::hasTag($newtagid))
+		if ($rows)
 		{
 			$entries = array();
 
