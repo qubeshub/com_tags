@@ -12,6 +12,7 @@ use User;
 use Date;
 
 require_once __DIR__ . DS . 'tag.php';
+require_once __DIR__ . DS . 'focusarea.php';
 
 /**
  * Cloud model for Tags
@@ -45,11 +46,12 @@ class Cloud extends \Hubzero\Base\Obj
 	 * @var array
 	 */
 	protected $_cache = array(
-		'tags.one'    => null,
-		'tags.count'  => null,
-		'tags.list'   => null,
-		'tags.string' => null,
-		'tags.cloud'  => null
+		'tags.one'    	  => null,
+		'tags.count'  	  => null,
+		'tags.list'   	  => null,
+		'tags.string' 	  => null,
+		'tags.cloud'  	  => null,
+		'tags.focusareas' => null
 	);
 
 	/**
@@ -186,6 +188,8 @@ class Cloud extends \Hubzero\Base\Obj
 
 		$tbl = Objct::blank()->getTableName();
 
+		$fatbl = FocusArea::blank()->getTableName();
+
 		$results = Tag::all()->purgeCache();
 
 		if (isset($filters['sort']) && $filters['sort'] == 'taggedon')
@@ -257,6 +261,14 @@ class Cloud extends \Hubzero\Base\Obj
 				->orWhereLike($results->getTableName() . '.tag', $filters['search'], 1)
 				->orWhereLike($tbl . '.raw_tag', $filters['search'], 1)
 				->resetDepth();
+		}
+		if (isset($filters['focusarea'])) {	
+			if ($filters['focusarea']) {
+				$results->join($fatbl, $fatbl . '.tag_id', $results->getTableName() . '.id');
+			} else {
+				$results->join($fatbl, $fatbl . '.tag_id', $results->getTableName() . '.id', 'left')
+					->whereIsNull($fatbl . '.tag_id');
+			}
 		}
 
 		switch (strtolower($rtrn))
