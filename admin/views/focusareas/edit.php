@@ -14,13 +14,9 @@ $text = ($this->task == 'edit' ? Lang::txt('JACTION_EDIT') : Lang::txt('JACTION_
 Toolbar::title(Lang::txt('COM_TAGS') . ': FOCUS AREAS: ' . $text, 'focusareas');
 if ($canDo->get('core.edit'))
 {
-	Toolbar::apply();
 	Toolbar::save();
-	Toolbar::spacer();
 }
 Toolbar::cancel();
-Toolbar::spacer();
-Toolbar::help('edit');
 
 Html::behavior('framework');
 Html::behavior('formvalidation');
@@ -30,14 +26,15 @@ $this->css('sortable_tree_bundle')
     ->css('sortable_tree');
 $this->js()
 	->js('api')
-    ->js('sortable_tree_bundle')
+    ->js('sortable_tree_bundle');
 ?>
 
-<div id="root"></div>
+<div id="st-focusarea"></div>
 
 <form action="<?php echo Route::url('index.php?option=' . $this->option . '&controller=' . $this->controller); ?>" method="post" name="adminForm" id="item-form" class="editform form-validate" data-invalid-msg="<?php echo $this->escape(Lang::txt('JGLOBAL_VALIDATION_FORM_FAILED'));?>">
 
-    <input type="hidden" name="flattree" value='<?php echo json_encode($this->flattree); ?>' />
+    <input type="hidden" name="flattree" value='<?php echo htmlspecialchars(json_encode($this->flattree), ENT_QUOTES); ?>' />
+    <input type="hidden" name="parent" value="<?php echo $this->fa->parent; ?>" />
 	<input type="hidden" name="option" value="<?php echo $this->option; ?>" />
 	<input type="hidden" name="controller" value="<?php echo $this->controller; ?>" />
 	<input type="hidden" name="task" value="save" />
@@ -46,5 +43,5 @@ $this->js()
 </form>
 
 <script>
-    var App = ST.ReactContentRenderer.render({flattree: JSON.parse($('input[name="flattree"]').val())}, document.getElementById('root'));
+    var App = ST.ReactContentRenderer.render({flattree: JSON.parse($('input[name="flattree"]').val())}, document.getElementById('st-focusarea'));
 </script>

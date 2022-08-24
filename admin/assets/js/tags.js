@@ -10,6 +10,10 @@ Hubzero.submitbutton = function(task) {
 	var frm = document.getElementById('item-form');
 
 	if (frm) {
+		if (task == 'save' && document.getElementById('st-focusarea')) {
+			document.querySelector('input[name="flattree"]').value = JSON.stringify(App.getData());
+		}
+
 		if (task == 'cancel' || document.formvalidator.isValid(frm)) {
 			Hubzero.submitform(task, frm);
 		} else {

@@ -9,8 +9,10 @@ namespace Components\Tags\Models;
 
 use Hubzero\Database\Relational;
 use Hubzero\Component\View;
+use Components\Tags\Models\Alignment;
 use stdClass;
 
+require_once __DIR__ . DS . 'alignment.php';
 /**
  * Model class for publication version author
  */
@@ -162,6 +164,72 @@ class FocusArea extends Relational
     }
 
     /**
+	 * Retrieves one row by primary key, returning an initialized row if not found
+	 *
+	 * @param   mixed  $id  The primary key field value to use to retrieve one row
+	 * @return  \Hubzero\Database\Relational|static
+	 * @since   2.0.0
+	 **/
+    public static function oneOrNew($id) {
+        $fa = parent::oneOrNew($id);
+        
+        if ($fa->isNew()) {
+            // Save to generate new id
+            $fa->set('tag_id', 0);
+            if (!$fa->save()) {
+                Notify::error($fa->getError());
+                return false;
+            }
+
+            // Create new tag
+            $tag = Tag::oneOrNew(0)->set("raw_tag", "qfa_" . $fa->id);
+            $tag->set("tag", $tag->normalize($tag->get("raw_tag")));
+            $tag->set("admin", 1);
+            if (!$tag->save()) {
+                Notify::error($tag->getError());
+                return false;
+            }
+
+            // Assign tag id
+            $fa->set('tag_id', $tag->get('id'));
+            if (!$fa->save()) {
+                Notify::error($fa->getError());
+                return false;
+            }
+        }
+
+        return $fa;
+    }
+
+	/**
+	 * Delete entry and associated data
+	 *
+	 * @return  object
+	 */
+	public function destroy($recurse = false)
+	{
+		$fa_id = $this->get('id');
+
+        // Recurse - depth-first in this case
+        if ($recurse) {
+            foreach ($this->children() as $child) {
+                $child->destroy(true);
+            }
+        }
+
+        // Delete alignments (if root)
+        if (is_null($this->get('parent'))) {
+		    foreach ($this->alignments()->rows() as $row)
+		    {
+			    $row->destroy();
+		    }
+        }
+
+        $this->tag->destroy(); // Delete tag (which also deletes objects)
+		parent::destroy(); // Delete focus area
+	}
+
+    /**
 	 * Recursive method for rendering hierarchical focus areas (tags)
 	 *
      * $props:
@@ -209,10 +277,15 @@ class FocusArea extends Relational
             break;
             case 'flat':
                 $obj = new stdClass();
-                $obj->id = $this->id;
-                $obj->name = htmlspecialchars($this->label, ENT_QUOTES);
-                $obj->subtitle = htmlspecialchars($this->about, ENT_QUOTES);
-                $obj->parent = $this->parent;
+                $obj->id = ($this->id ? $this->id : 0);
+                $obj->name = ($this->label ? $this->label : '');
+                $obj->subtitle = ($this->about ? $this->about : '');
+                if ($depth++ == 1) {
+                    $obj->expanded = true;
+                    $obj->parent = null;
+                } else {
+                    $obj->parent = $this->parent;
+                }
                 $flattree = array(array($obj));
             break;
             case 'view':
@@ -233,7 +306,7 @@ class FocusArea extends Relational
 					$paths[] = $child->render('search', $props);
                 break;
                 case 'flat':
-                    $flattree[] = $child->render('flat', $props);
+                    $flattree[] = $child->render('flat', $props, $depth);
                 break;
                 case 'view':
                     $view->set('stage', 'during')

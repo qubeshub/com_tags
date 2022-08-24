@@ -9,6 +9,7 @@ namespace Components\Tags\Admin\Controllers;
 
 use Hubzero\Component\AdminController;
 use Components\Tags\Models\FocusArea;
+use Components\Tags\Models\Tag;
 use stdClass;
 
 /**
@@ -16,12 +17,24 @@ use stdClass;
  */
 class Focusareas extends AdminController
 {
-    	/**
+    /**
 	 * Prelead
 	 *
 	 * @var string
 	 */
 	private $preload;
+
+	/**
+	 * Execute a task
+	 *
+	 * @return  void
+	 */
+	public function execute()
+	{
+		$this->registerTask('add', 'edit');
+
+		parent::execute();
+	}
 
 	/**
 	 * Show a form for looking up a tag's relationships
@@ -114,7 +127,7 @@ class Focusareas extends AdminController
 
 		Request::setVar('hidemainmenu', 1);
 
-		// Load a tag object if one doesn't already exist
+		// Load a focus area object if one doesn't already exist
 		if (!is_object($fa))
 		{
 			// Incoming
@@ -126,15 +139,6 @@ class Focusareas extends AdminController
 
 			$fa = FocusArea::oneOrNew(intval($id));
 		}
-        // $one = new stdClass();
-        // $one->id = "1";
-        // $one->name = "One";
-        // $one->parent = null;
-        // $two = new stdClass();
-        // $two->id = "2";
-        // $two->name = "Two";
-        // $two->parent = 1;
-        // $flattree = array($one, $two);
         $flattree = $fa->render('flat');
 
 		// Output the HTML
@@ -155,11 +159,59 @@ class Focusareas extends AdminController
 		// Check for request forgeries
 		Request::checkToken();
 
+		// Incoming
+		$parent     = Request::getInt('parent', null);
+		$flattree	= Request::getString('flattree', '');
+
 		// Permissions check
 		if (!User::authorise('core.edit', $this->_option)
 		 && !User::authorise('core.create', $this->_option))
 		{
 			App::abort(403, Lang::txt('JERROR_ALERTNOAUTHOR'));
+		}
+
+		$new_fas = json_decode($flattree);
+		$new_fas[0]->parent = $parent; // Was set to null for sortable tree to work - set back
+		$new_fas_ids = array_map(function($fa) { return (isset($fa->id) ? $fa->id : '0'); }, $new_fas);
+
+		// Get original focus areas
+		$old_fa = FocusArea::oneOrNew(intval($new_fas[0]->id)); // 0th should be same
+		$old_fas = $old_fa->render('flat');
+
+		// Delete 
+		$delete = array_filter($old_fas, function($fa) use ($new_fas_ids) {
+			return !in_array($fa->id, $new_fas_ids);
+		});
+		foreach ($delete as $dmw) {
+			$fa = FocusArea::oneOrFail(intval($dmw->id));
+			$fa->destroy();
+		}
+
+		// Add or modify
+		$subs = array(); // New id substitutions
+		$ordering = array();
+		foreach ($new_fas as $fa) {
+			$new_fa = FocusArea::oneOrNew(isset($fa->id) ? intval($fa->id) : 0);
+			$id = (string) $new_fa->get('id');
+			if (!isset($ordering[$id])) { $ordering[$id] = 0; }
+			// Save substitution (new focus area)
+			if (intval($fa->id) < 0) {
+				$subs[$fa->id] = $id;
+			}
+			// Use substitution
+			if ($fa->parent && (intval($fa->parent) < 0)) {
+				$fa->parent = $subs[$fa->parent];
+			}
+			$new_fa->set('label', $fa->name);
+			$new_fa->set('about', $fa->subtitle);
+			$new_fa->set('parent', $fa->parent);
+			if (is_null($fa->parent) || isset($ordering[$fa->parent])) {
+				$new_fa->set('ordering', $fa->parent ? ++$ordering[$fa->parent] : null);
+			}
+			if (!$new_fa->save()) {
+				Notify::error($new_fa->getError());
+				return $this->editTask($new_fa);
+			}
 		}
 
         Notify::success(Lang::txt('COM_TAGS_FOCUS_AREA_SAVED'));
@@ -198,17 +250,13 @@ class Focusareas extends AdminController
 		{
 			$id = intval($id);
 
-			// Trigger before delete event
-			// Event::trigger('tags.onTagDelete', array($id));
-
-			// Remove the tag
-			// $tag = Tag::oneOrFail($id);
-			// $tag->destroy();
+			// Remove the focus area
+			$fa = FocusArea::oneOrFail($id);
+			$fa->destroy(true); // In this case, recurse
 		}
 
 		Notify::success(Lang::txt('COM_TAGS_FOCUS_AREA_REMOVED'));
 
 		$this->cancelTask();
 	}
-
 }
