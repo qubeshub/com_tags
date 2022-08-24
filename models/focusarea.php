@@ -62,11 +62,16 @@ class FocusArea extends Relational
      * Retrieve focus areas by tag ids
      * 
      * @param   array   $tags   Array of tags
+     * @param   bool    $save   Save to selected attribute
      * @return  object  Relational class
      */
-    public static function fromTags($tags) {
+    public function fromTags($tags, $save=true) {
 		$tag_ids = $tags->fieldsByKey('id');
-        return self::all()->whereIn('tag_id', $tag_ids);
+        $fas = self::all()->whereIn('tag_id', $tag_ids);
+        if ($save) {
+            $this->set('selected', $fas->copy());
+        }
+        return $fas;
 	}
 
     /**
@@ -76,8 +81,10 @@ class FocusArea extends Relational
      * @param   bool    $null   If true, return null parents (roots of focus area)
      * @return  object  Relational class
      */    
-    public static function parents($fas, $null = false) {
-        $parents = $fas->join('#__focus_areas AS P', '#__focus_areas.parent', 'P.id', 'right');
+    public function parents($fas, $null = false) {
+        $parents = $fas->join('#__focus_areas AS P', '#__focus_areas.parent', 'P.id', 'right')
+                       ->deselect()
+                       ->select('DISTINCT P.*');
         return ($null ? $parents->whereIsNull('P.parent') : $parents);
     }
 
@@ -86,7 +93,7 @@ class FocusArea extends Relational
      * 
      * @return  Query object
      */
-    public static function roots() {
+    public function roots() {
         return self::all()->whereIsNull('parent');
     }
 
@@ -123,56 +130,59 @@ class FocusArea extends Relational
     /**
 	 * Recursive method for rendering hierarchical focus areas (tags)
 	 *
-     * @param   integer $id         Id of parent
-     * @param   string  $rtrn       Format to render ('array', 'search', 'select', 'view')
-	 * @param	array	$subset		Existing focus area ids
+     * @param   integer $fa         Focus area to render
+     * @param   string  $rtrn       Format to render ('search', 'select', 'view')
 	 * @return  void
 	 */
-	public function render($id, $rtrn='array') {
-        $subset = ($this->hasAttribute('subset') ? $this->get('subset') : null);
+	public function render($fa, $rtrn='html') {
+        // Initialize
+        $selected = ($this->hasAttribute('selected') ? $this->get('selected') : null);
         $view = ($this->hasAttribute('view') 
             ? $this->get('view') 
             : new View(array(
                     'base_path' => dirname(__DIR__) . '/site',
                     'name'      => 'tags',
-                    'layout'    => '_focusarea'
+                    'layout'    => '_focusareas'
                 ))
             );
 
+        // Get children
         $tbl = $this->getTableName();
-        $fas = self::all()
+        $children = self::all()
             ->select($tbl . '.*')
-            ->select('T.tag')
             ->join('#__tags T', $tbl . '.tag_id', 'T.id')
-            ->whereEquals($tbl . '.parent', $id)
+            ->whereEquals($tbl . '.parent', $fa->id)
             ->order($tbl . '.ordering', 'ASC');
         
-        if (!is_null($subset)) {
-            $fas->whereIn($tbl . '.id', $subset);
+        if (!is_null($selected)) {
+            $children->whereIn($tbl . '.id', $selected->copy()->rows()->fieldsByKey('id'));
         }
-        $fas = $fas->rows();
+        $children = $children->rows();
 
         // Before recursion
         switch (strtolower($rtrn))
         {
+            case 'search':
+                $paths = array();
+            break;
             case 'html':
                 $view->set('stage', 'before')
-                    ->set('fas', $fas);
+                    ->set('fas', $children);
                 $html = $view->loadTemplate();
             break;
         }
 
         // Recurse step
-        foreach ($fas as $fa) {
+        foreach ($children as $child) {
             switch (strtolower($rtrn))
             {
-                case 'array':
-                    $fa->children = $this->render($fa->id, $rtrn);
+                case 'search':
+					$paths[] = $this->render($child, 'search');
                 break;
                 case 'html':
                     $view->set('stage', 'during')
                         ->set('model', $this)
-                        ->set('fa', $fa)
+                        ->set('fa', $child)
                         ->set('rtrn', $rtrn);
                     $html .= $view->loadTemplate();
                 break;
@@ -182,12 +192,22 @@ class FocusArea extends Relational
         // After recursion
         switch (strtolower($rtrn))
         {
-            case 'array':
-                return $fas;
+            case 'search':
+                $tag = $fa->tag->get('tag');
+                if (!count($children)) {
+                    return array($tag);
+                } else {
+                    return array_map(
+                        function($v) use ($tag) {
+                            return $tag . '.' . $v;
+                        },
+                        array_merge(...$paths)
+                    );
+                }
             break;
             case 'html':
                 $view->set('stage', 'after')
-                    ->set('fas', $fas);
+                    ->set('fas', $children);
                 $html .= $view->loadTemplate();
                 return $html;
             break;
@@ -202,22 +222,29 @@ class FocusArea extends Relational
      * @param   integer $oid    Master type id
      * @return  array
      */
-    public function setSelectSettings($id, $oid) {
+    public function setSelectSettings($id, $oid, $from='publication_master_types') {
         $tbl = $this->getTableName();
         $settings = self::blank()
-            ->select('FP.mandatory_depth')
-            ->select('FP.multiple_depth')
-            ->join('#__focus_area_publication_master_type_rel FP', $tbl . '.id', 'FP.focus_area_id')
-            ->whereEquals('FP.focus_area_id', $id)
-            ->whereEquals('FP.master_type_id', $oid)
+            ->select('O.mandatory_depth')
+            ->select('O.multiple_depth')
+            ->join('#__focus_areas_object O', $tbl . '.id', 'O.faid')
+            ->whereEquals('O.objectid', $oid)
+            ->whereEquals('O.faid', $id)
+            ->whereEquals('O.tbl', $from)
             ->row();
 
         if ($settings) {
             $this->set('mandatory_depth', $settings->mandatory_depth);
             $this->set('multiple_depth', $settings->multiple_depth);
-            return true;
+            return array(
+                'mandatory_depth' => $settings->mandatory_depth,
+                'multiple_depth' => $settings->multiple_depth
+            );
         } else {
-            return false;
+            return array(
+                'mandatory_depth' => null,
+                'multiple_depth' => null
+            );
         }
     }
 

@@ -50,8 +50,7 @@ class Cloud extends \Hubzero\Base\Obj
 		'tags.count'  	  => null,
 		'tags.list'   	  => null,
 		'tags.string' 	  => null,
-		'tags.cloud'  	  => null,
-		'tags.focusareas' => null
+		'tags.cloud'  	  => null
 	);
 
 	/**
@@ -262,12 +261,20 @@ class Cloud extends \Hubzero\Base\Obj
 				->orWhereLike($tbl . '.raw_tag', $filters['search'], 1)
 				->resetDepth();
 		}
-		if (isset($filters['focusarea'])) {	
-			if ($filters['focusarea']) {
-				$results->join($fatbl, $fatbl . '.tag_id', $results->getTableName() . '.id');
-			} else {
-				$results->join($fatbl, $fatbl . '.tag_id', $results->getTableName() . '.id', 'left')
-					->whereIsNull($fatbl . '.tag_id');
+		if (isset($filters['type'])) {
+			switch ($filters['type'])
+			{
+				case 'focusareas':
+					$results->join($fatbl, $fatbl . '.tag_id', $results->getTableName() . '.id');
+				break;
+
+				case 'keywords':
+					$results->join($fatbl, $fatbl . '.tag_id', $results->getTableName() . '.id', 'left')
+						->whereIsNull($fatbl . '.tag_id');
+				break;
+
+				default:
+				break;
 			}
 		}
 
@@ -528,7 +535,7 @@ class Cloud extends \Hubzero\Base\Obj
 					$view = new View(array(
 						'base_path' => dirname(__DIR__) . '/site',
 						'name'      => 'tags',
-						'layout'    => '_cloud'
+						'layout'    => '_keywords'
 					));
 					$view->set('config', \Component::params('com_tags'))
 					     ->set('tags', $this->tags('list', $filters, $clear));

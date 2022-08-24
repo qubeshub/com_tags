@@ -18,7 +18,7 @@ switch ($this->stage) {
     case 'during':
         $html .= "<li class='fa'>";
         $html .= "<label style='display: inline;'" . ($this->fa->about ? " title='" . htmlentities($this->fa->about) . "' class='tooltips'" : "") . ">" . $this->fa->label . "</label>";
-        $html .= $this->model->render($this->fa->id, $this->rtrn);
+        $html .= $this->model->render($this->fa, $this->rtrn);
         $html .= "</li>";
     break;
     case 'after':
