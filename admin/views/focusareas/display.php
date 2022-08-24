@@ -48,8 +48,8 @@ if ($canDo->get('core.delete'))
 				<th scope="col"><input type="checkbox" name="toggle" value="" class="checkbox-toggle toggle-all" /></th>
 				<th scope="col"><?php echo Html::grid('sort', 'COM_FOCUS_AREAS_COL_ID', 'id', @$this->filters['sort_Dir'], @$this->filters['sort']); ?></th>
 				<th scope="col" class="priority-2"><?php echo Html::grid('sort', 'COM_FOCUS_AREAS_COL_LABEL', 'label', @$this->filters['sort_Dir'], @$this->filters['sort']); ?></th>
-                <th scope="col" class="priority-3"><?php echo Html::grid('sort', 'COM_FOCUS_AREAS_COL_TAG_ID', 'tag_id', @$this->filters['sort_Dir'], @$this->filters['sort']); ?></th>
-				<th scope="col" class="priority-4"><?php echo Html::grid('sort', 'COM_FOCUS_AREAS_COL_NUMBER_ALIGNED', 'objects', @$this->filters['sort_Dir'], @$this->filters['sort']); ?></th>
+				<th scope="col" class="priority-3"><?php echo Html::grid('sort', 'COM_FOCUS_AREAS_COL_ABOUT', 'about', @$this->filters['sort_Dir'], @$this->filters['sort']); ?></th>
+                <th scope="col" class="priority-4"><?php echo Html::grid('sort', 'COM_FOCUS_AREAS_COL_TAG_ID', 'tag_id', @$this->filters['sort_Dir'], @$this->filters['sort']); ?></th>
 			</tr>
 		</thead>
 		<tfoot>
@@ -95,7 +95,18 @@ if ($canDo->get('core.delete'))
 						</span>
 					<?php } ?>
 				</td>
-                <td class="priority-3">
+				<td class="priority-3">
+					<?php if ($canDo->get('core.edit')) { ?>
+						<a href="<?php echo Route::url('index.php?option=' . $this->option . '&controller=' . $this->controller . '&task=edit&id=' . $row->get('id')); ?>">
+							<?php echo $this->escape(stripslashes($row->get('about'))); ?>
+						</a>
+					<?php } else { ?>
+						<span>
+							<?php echo $this->escape(stripslashes($row->get('about'))); ?>
+						</span>
+					<?php } ?>
+				</td>
+                <td class="priority-4">
 					<?php if ($canDo->get('core.edit')) { ?>
 						<a href="<?php echo Route::url('index.php?option=' . $this->option . '&controller=entries&task=edit&id=' . $row->get('tag_id')); ?>">
 							<?php echo $this->escape(stripslashes($row->get('tag_id'))); ?>
@@ -105,11 +116,6 @@ if ($canDo->get('core.delete'))
 							<?php echo $this->escape(stripslashes($row->get('tag_id'))); ?>
 						</span>
 					<?php } ?>
-				</td>
-				<td class="priority-4">
-					<a href="<?php echo Route::url('index.php?option=' . $this->option . '&controller=tagged&tag=' . $row->get('id')); ?>">
-						<?php echo $row->get('objects', 0); ?>
-					</a>
 				</td>
 			</tr>
 			<?php
