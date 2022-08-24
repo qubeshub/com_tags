@@ -72,6 +72,16 @@ class FocusArea extends Relational
     }
 
     /**
+	 * Get a list of aligned objects
+	 *
+	 * @return  object
+	 */
+	public function alignments()
+	{
+		return $this->oneToMany(__NAMESPACE__ . '\\Alignment', 'faid');
+	}
+
+    /**
      * Retrieve focus areas by tag ids
      * 
      * @param   array   $tags   Array of tags
@@ -106,7 +116,7 @@ class FocusArea extends Relational
     }
 
     /**
-     * Retrieve focus areas by tag ids
+     * Get parents
      * 
      * @param   bool    $null   If true, return null parents (roots of focus area)
      * @return  object  Relational class
@@ -120,12 +130,34 @@ class FocusArea extends Relational
     }
 
     /**
+     * Get children
+     * 
+     * @return  object  Relational class
+     */
+    public function children() {
+        $children = self::all()
+            ->select('#__focus_areas.*')
+            ->join('#__tags T', '#__focus_areas.tag_id', 'T.id')
+            ->whereEquals('#__focus_areas.parent', $this->id)
+            ->order('#__focus_areas.ordering', 'ASC');
+        return $children;
+    }
+
+    /**
      * Return the root focus areas (taxonomies)
      * 
      * @return  Query object
      */
     public static function roots() {
         return self::all()->whereIsNull('parent');
+    }
+
+    public function maxdepth($depth = 0) {
+        $max_depth = $depth;
+        foreach($this->children() as $fa) {
+            $max_depth = max($max_depth, $fa->maxdepth($depth+1));
+        }
+        return $max_depth;
     }
 
     /**
@@ -164,15 +196,9 @@ class FocusArea extends Relational
         }
 
         // Get children
-        $tbl = $this->getTableName();
-        $children = self::all()
-            ->select($tbl . '.*')
-            ->join('#__tags T', $tbl . '.tag_id', 'T.id')
-            ->whereEquals($tbl . '.parent', $this->id)
-            ->order($tbl . '.ordering', 'ASC');
-        
+        $children = $this->children();
         if (isset($props['selected']) && ($rtrn != 'select')) {
-            $children->whereIn($tbl . '.id', $props['selected']->copy()->rows()->fieldsByKey('id'));
+            $children->whereIn('#__focus_areas.id', $props['selected']->copy()->rows()->fieldsByKey('id'));
         }
         $children = $children->rows();
 

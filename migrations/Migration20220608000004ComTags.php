@@ -27,7 +27,6 @@ class Migration20220608000004ComTags extends Base
                 `ordering` int(11) DEFAULT NULL,
                 PRIMARY KEY (`id`),
                 UNIQUE KEY `unique_focusarea_per_obj` (`objectid`,`faid`,`tbl`),
-                UNIQUE KEY `unique_ordering_per_obj` (`objectid`, `tbl`, `ordering`),
                 KEY `idx_objectid_tbl` (`objectid`,`tbl`),
                 KEY `idx_faid` (`faid`)
               ) ENGINE=MyISAM DEFAULT CHARSET=utf8;";
