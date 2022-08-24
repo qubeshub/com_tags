@@ -107,8 +107,8 @@ class FocusArea extends Relational
     public static function fromObject($oid, $from='publication_master_types') {
         $fas = self::blank()
             ->select('#__focus_areas.*')
-            ->select('O.mandatory_depth AS O_mandatory_depth') // Remove this once old depths are removed from FA table
-            ->select('O.multiple_depth AS O_multiple_depth')
+            ->select('O.mandatory_depth AS mandatory_depth') // Remove this once old depths are removed from FA table
+            ->select('O.multiple_depth AS multiple_depth')
             ->select('O.ordering AS O_ordering')
             ->join('#__focus_areas_object O', '#__focus_areas.id', 'O.faid')
             ->whereEquals('O.objectid', $oid)
@@ -385,7 +385,7 @@ class FocusArea extends Relational
         // Check depths against mandatory depth
         foreach ($this as $fa) {
             $tag = $fa->tag->get('tag');
-            if ($depths[$tag] < $fa->O_mandatory_depth) {
+            if ($depths[$tag] < $fa->mandatory_depth) {
                 return 0;
             }
         }

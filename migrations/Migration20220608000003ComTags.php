@@ -133,9 +133,9 @@ class Migration20220608000003ComTags extends Base
             $this->db->tableHasField('#__focus_areas', 'parent') &&
             $this->db->tableHasField('#__focus_areas', 'ordering'))
 		{
-			// $query = "ALTER TABLE `#__focus_areas` DROP COLUMN ordering, DROP COLUMN parent";
-			// $this->db->setQuery($query);
-			// $this->db->query();
+			$query = "ALTER TABLE `#__focus_areas` DROP COLUMN ordering, DROP COLUMN parent";
+			$this->db->setQuery($query);
+			$this->db->query();
 		}
     }
 

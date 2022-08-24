@@ -91,13 +91,6 @@ class Migration20220608000004ComTags extends Base
 	 **/
 	public function down()
 	{
-        if ($this->db->tableExists('#__focus_areas_object'))
-        {
-            $query = "DROP TABLE #__focus_areas_object";
-			$this->db->setQuery($query);
-			$this->db->query();
-        }
-
-        // Add tables back (once code works)
+        // One way change
     }
 }
