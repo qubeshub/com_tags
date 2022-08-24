@@ -9,6 +9,7 @@ namespace Components\Tags\Models;
 
 use Hubzero\Database\Relational;
 use Hubzero\Component\View;
+use stdClass;
 
 /**
  * Model class for publication version author
@@ -166,7 +167,7 @@ class FocusArea extends Relational
      * $props:
      *  'selected' => FocusArea class of selected focus areas (note: might be able to have this be array of ids if $rtrn != select)
      * 
-     * @param   string  $rtrn       Format to render ('search', 'select', 'view')
+     * @param   string  $rtrn       Format to render ('search', 'select', 'view', 'flat')
      * @param   array   $props      Array of props needed for render
      * @param   int     $depth      Depth of current recursive call
      * 
@@ -174,25 +175,23 @@ class FocusArea extends Relational
 	 */
 	public function render($rtrn='view', $props=array(), $depth=1) {
         // Initialize
-        if ($rtrn != 'search') {
-            if ($rtrn == 'view') {
-                $view = new \Hubzero\Component\View(
-                    array(
-                        'base_path' => dirname(__DIR__) . '/site',
-                        'name'      => 'tags',
-                        'layout'    => '_focusareas'
-                    )
-                );
-            } elseif ($rtrn == 'select') {
-                $view = new \Hubzero\Plugin\View(
-                    array(
-                        'folder'  => 'projects',
-                        'element' => 'publications',
-                        'name'    => 'draft',
-                        'layout'  => '_focusareas'
-                    )
-                );
-            }
+        if ($rtrn == 'view') {
+            $view = new \Hubzero\Component\View(
+                array(
+                    'base_path' => dirname(__DIR__) . '/site',
+                    'name'      => 'tags',
+                    'layout'    => '_focusareas'
+                )
+            );
+        } elseif ($rtrn == 'select') {
+            $view = new \Hubzero\Plugin\View(
+                array(
+                    'folder'  => 'projects',
+                    'element' => 'publications',
+                    'name'    => 'draft',
+                    'layout'  => '_focusareas'
+                )
+            );
         }
 
         // Get children
@@ -207,6 +206,14 @@ class FocusArea extends Relational
         {
             case 'search':
                 $paths = array();
+            break;
+            case 'flat':
+                $obj = new stdClass();
+                $obj->id = $this->id;
+                $obj->name = htmlspecialchars($this->label, ENT_QUOTES);
+                $obj->subtitle = htmlspecialchars($this->about, ENT_QUOTES);
+                $obj->parent = $this->parent;
+                $flattree = array(array($obj));
             break;
             case 'view':
                 $view->set('stage', 'before')
@@ -224,6 +231,9 @@ class FocusArea extends Relational
             {
                 case 'search':
 					$paths[] = $child->render('search', $props);
+                break;
+                case 'flat':
+                    $flattree[] = $child->render('flat', $props);
                 break;
                 case 'view':
                     $view->set('stage', 'during')
@@ -255,6 +265,13 @@ class FocusArea extends Relational
                         },
                         array_merge(...$paths)
                     );
+                }
+            break;
+            case 'flat':
+                if (!count($children)) {
+                    return $flattree[0];
+                } else {
+                    return array_merge(...$flattree);
                 }
             break;
             case 'view':

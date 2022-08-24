@@ -9,6 +9,7 @@ namespace Components\Tags\Admin\Controllers;
 
 use Hubzero\Component\AdminController;
 use Components\Tags\Models\FocusArea;
+use stdClass;
 
 /**
  * Tags controller class for managing raltionships between tags
@@ -96,4 +97,118 @@ class Focusareas extends AdminController
             ->set('rows', $rows)
             ->display();
 	}
+
+    /**
+	 * Edit an entry
+	 *
+	 * @param   object  $fa  Focus area being edited
+	 * @return  void
+	 */
+	public function editTask($fa=null)
+	{
+		if (!User::authorise('core.edit', $this->_option)
+		 && !User::authorise('core.create', $this->_option))
+		{
+			App::abort(403, Lang::txt('JERROR_ALERTNOAUTHOR'));
+		}
+
+		Request::setVar('hidemainmenu', 1);
+
+		// Load a tag object if one doesn't already exist
+		if (!is_object($fa))
+		{
+			// Incoming
+			$id = Request::getArray('id', array(0));
+			if (is_array($id) && !empty($id))
+			{
+				$id = $id[0];
+			}
+
+			$fa = FocusArea::oneOrNew(intval($id));
+		}
+        // $one = new stdClass();
+        // $one->id = "1";
+        // $one->name = "One";
+        // $one->parent = null;
+        // $two = new stdClass();
+        // $two->id = "2";
+        // $two->name = "Two";
+        // $two->parent = 1;
+        // $flattree = array($one, $two);
+        $flattree = $fa->render('flat');
+
+		// Output the HTML
+		$this->view
+			->set('fa', $fa)
+            ->set('flattree', $flattree)
+			->setLayout('edit')
+			->display();
+	}
+
+	/**
+	 * Save an entry
+	 *
+	 * @return  void
+	 */
+	public function saveTask()
+	{
+		// Check for request forgeries
+		Request::checkToken();
+
+		// Permissions check
+		if (!User::authorise('core.edit', $this->_option)
+		 && !User::authorise('core.create', $this->_option))
+		{
+			App::abort(403, Lang::txt('JERROR_ALERTNOAUTHOR'));
+		}
+
+        Notify::success(Lang::txt('COM_TAGS_FOCUS_AREA_SAVED'));
+
+		$this->cancelTask();
+	}
+
+	/**
+	 * Remove one or more entries
+	 *
+	 * @return  void
+	 */
+	public function removeTask()
+	{
+		// Check for request forgeries
+		Request::checkToken();
+
+		// Permissions check
+		if (!User::authorise('core.delete', $this->_option))
+		{
+			App::abort(403, Lang::txt('JERROR_ALERTNOAUTHOR'));
+		}
+
+		$ids = Request::getArray('id', array());
+		$ids = (!is_array($ids) ? array($ids) : $ids);
+
+		// Make sure we have an ID
+		if (empty($ids))
+		{
+			Notify::warning(Lang::txt('COM_TAGS_ERROR_NO_ITEMS_SELECTED'));
+
+			return $this->cancelTask();
+		}
+
+		foreach ($ids as $id)
+		{
+			$id = intval($id);
+
+			// Trigger before delete event
+			// Event::trigger('tags.onTagDelete', array($id));
+
+			// Remove the tag
+			// $tag = Tag::oneOrFail($id);
+			// $tag->destroy();
+		}
+
+		Notify::success(Lang::txt('COM_TAGS_FOCUS_AREA_REMOVED'));
+
+		$this->cancelTask();
+	}
+
 }

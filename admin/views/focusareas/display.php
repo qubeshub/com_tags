@@ -10,7 +10,7 @@ defined('_HZEXEC_') or die();
 
 $canDo = Components\Tags\Helpers\Permissions::getActions();
 
-Toolbar::title(Lang::txt('COM_TAGS'), 'focusareas');
+Toolbar::title(Lang::txt('COM_TAGS') . ': FOCUS AREAS', 'focusareas');
 Toolbar::custom('calculate', 'refresh', '', 'COM_TAGS_RECALCULATE', false);
 if ($canDo->get('core.create'))
 {

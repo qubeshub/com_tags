@@ -1,0 +1,27 @@
+button.st-btn:before {
+    font-family: "Fontcons";
+    font-size: 2em;
+}
+
+button.add-child:before {
+    content: "\2295";
+}
+
+button.remove-child:before {
+    content: "\2296";
+}
+
+.rst__rowLabel {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+}
+
+.rst_rowTitle,
+.rst__rowTitleWithSubtitle {
+    height: unset;
+}
+
+.rst__rowSubtitle {
+    font-size: 85%;
+}
