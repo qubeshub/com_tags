@@ -36,9 +36,9 @@ class Migration20220608000003ComTags extends Base
                 $this->log("FA: " . $fa->tag_id);
 
                 // Get children/ontology
-                $query = "SELECT C.*, P.tagid AS parent_id FROM `#__tags_object` P
+                $query = "SELECT C.*, P.ordering, P.tagid AS parent_id FROM `#__tags_object` P
                 INNER JOIN
-                (SELECT T.id AS tag_id, T.raw_tag AS label, T.description as about, O.ordering from `#__tags_object` O
+                (SELECT T.id AS tag_id, T.raw_tag AS label, T.description as about from `#__tags_object` O
                 INNER JOIN `#__tags` T
                 ON T.id = O.objectid
                 WHERE O.label IN ('label', 'parent') AND O.tagid = " . $this->db->quote($fa->tag_id) . "
