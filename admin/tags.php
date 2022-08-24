@@ -34,8 +34,8 @@ $task = \Request::getCmd('task', '');
 );
 \Submenu::addEntry(
 	\Lang::txt('COM_TAGS_FOCUS_AREAS'),
-	\Route::url('index.php?option=com_tags&controller=relationships&task=meta'),
-	($controllerName == 'relationships' && ($task == 'meta' || $task == 'updatefocusareas'))
+	\Route::url('index.php?option=com_tags&controller=focusareas'),
+	($controllerName == 'focusareas')
 );
 require_once \Component::path('com_plugins') . DS . 'helpers' . DS . 'plugins.php';
 if (\Components\Plugins\Helpers\Plugins::getActions()->get('core.manage'))
