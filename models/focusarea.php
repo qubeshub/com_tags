@@ -229,4 +229,36 @@ class FocusArea extends Relational
             break;
         }
     }
+
+    /**
+	 * Check status of focus area selection - are tags selected at minimal depths 
+     *  across focus areas?
+	 *
+     * This method should be called from result of $self::fromObject
+     * 
+     * @param   array   $selected   Result of Cloud render method with $rtrn = 'search'
+     * 
+	 * @return  void
+	 */
+    public function checkStatus($selected)
+	{
+        $fas_tags = array_map(function($tag) { return $tag->get('tag'); }, $this->copy()->rows()->fieldsByKey('tag'));
+
+        // Calculate depth for each focus area
+        $depths = array_fill_keys($fas_tags, 0);
+        foreach ($selected as $tag) {
+            $levels = explode('.', $tag);
+            $depths[$levels[0]] = max($depths[$levels[0]], count($levels)-1);
+        }
+
+        // Check depths against mandatory depth
+        foreach ($this as $fa) {
+            $tag = $fa->tag->get('tag');
+            if ($depths[$tag] < $fa->O_mandatory_depth) {
+                return 0;
+            }
+        }
+
+        return 1;
+	}
 }
