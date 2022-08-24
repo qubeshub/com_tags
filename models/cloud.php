@@ -632,6 +632,11 @@ class Cloud extends \Hubzero\Base\Obj
 		return Tag::blank()->normalize($tag);
 	}
 
+	public function parse($tags, $keep=0)
+	{
+		return $this->_parse($tags, $keep);
+	}
+
 	/**
 	 * Turn a comma-separated string of tags into an array of normalized tags
 	 *

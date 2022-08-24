@@ -59,6 +59,19 @@ class FocusArea extends Relational
     }
 
     /**
+	 * Retrieves tags of focus areas
+	 *
+	 * @return  mixed
+	 **/
+    public function tags()
+    {
+        return $this->copy()
+            ->join('#__tags AS T', '#__focus_areas.tag_id', 'T.id', 'right')
+            ->deselect()
+            ->select('T.*');
+    }
+
+    /**
      * Retrieve focus areas by tag ids
      * 
      * @param   array   $tags   Array of tags
@@ -242,7 +255,7 @@ class FocusArea extends Relational
 	 */
     public function checkStatus($selected)
 	{
-        $fas_tags = array_map(function($tag) { return $tag->get('tag'); }, $this->copy()->rows()->fieldsByKey('tag'));
+        $fas_tags = $this->tags()->rows()->fieldsByKey('tag');
 
         // Calculate depth for each focus area
         $depths = array_fill_keys($fas_tags, 0);
@@ -261,4 +274,35 @@ class FocusArea extends Relational
 
         return 1;
 	}
+
+    /**
+     * Get tags of focus areas from the browser
+     * 
+     * Call method from result of FocusArea::fromObject($oid)
+     * 
+     * @return  array   Array of tags
+     */
+    public function processTags() {
+        $tags = array();
+
+        // Get map of ontologies (aren't tagged in database)
+        $fas_tags = array_fill_keys($this->tags()->rows()->fieldsByKey('tag'), true);
+
+        foreach ($_POST as $k => $vs) {
+            if (!preg_match('/^tagfa/', $k)) {
+                continue;
+            } else {
+                $parent = explode('-', $k)[1];
+            }
+            $vs = (!is_array($vs) ? array($vs) : $vs);
+            foreach ($vs as $v) {
+                // Store if parent is ontology (or) parent already stored
+                if (isset($fas_tags[$parent]) || isset($tags[$parent])) {
+                    $tags[$v] = true;
+                } 
+            }
+        }
+
+        return array_keys($tags);
+    }
 }
