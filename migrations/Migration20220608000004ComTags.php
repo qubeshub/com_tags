@@ -42,8 +42,8 @@ class Migration20220608000004ComTags extends Base
         // Move content over
         if ($this->db->tableExists('#__focus_area_publication_master_type_rel')) {
             $query = "INSERT INTO `#__focus_areas_object`
-                SELECT (@cnt := @cnt + 1) AS id,
-                    FP.master_type_id AS objectid, 
+                (objectid, faid, tbl, mandatory_depth, multiple_depth, ordering)
+                SELECT FP.master_type_id AS objectid, 
                     FP.focus_area_id AS faid, 
                     'publication_master_types' AS tbl, 
                     FP.mandatory_depth, 
@@ -51,13 +51,36 @@ class Migration20220608000004ComTags extends Base
                     NULL AS ordering 
                 FROM `#__focus_areas`
                 INNER JOIN `#__focus_area_publication_master_type_rel` FP
-                ON jos_focus_areas.id = FP.focus_area_id
-                CROSS JOIN (SELECT @cnt := 0) AS dummy";
+                ON jos_focus_areas.id = FP.focus_area_id";
             $this->db->setQuery($query);
             if ($this->db->query()) {
                 $this->log("Successfully copied items to jos_focus_areas_object table", "success");
             } else {
                 $this->log("Unable to copy items to jos_focus_areas_object table", "failure");
+            }
+        }
+
+        // Set ordering
+        $query = "SELECT DISTINCT objectid FROM `#__focus_areas_object`";
+        $this->db->setQuery($query);
+        if ($master_types = $this->db->loadColumn()) {
+            foreach($master_types as $mt) {
+                $query = "UPDATE `#__focus_areas_object` AS A
+                    INNER JOIN
+                    (SELECT (@cnt := @cnt + 1) AS ordering, B.faid FROM
+                    (SELECT faid FROM `#__focus_areas_object`
+                    WHERE objectid = " . $mt . 
+                    " ORDER BY faid) B
+                    CROSS JOIN (SELECT @cnt := 0) AS dummy) C
+                    ON A.faid = C.faid
+                    SET A.ordering = C.ordering
+                    WHERE A.objectid = " . $mt;
+                $this->db->setQuery($query);
+                if ($this->db->query()) {
+                    $this->log("Successfully updated ordering for master type " . $mt, "success");
+                } else {
+                    $this->log("Unable to update ordering for master type " . $mt, "failure");
+                }
             }
         }
 

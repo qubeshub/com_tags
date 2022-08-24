@@ -11,18 +11,18 @@ defined('_HZEXEC_') or die();
 $html = '';
 switch ($this->stage) {
     case 'before':
-        if (count($this->fas)) {
+        if (count($this->children)) {
             $html .= '<ul class="fa">';
         }
     break;
     case 'during':
         $html .= "<li class='fa'>";
-        $html .= "<label style='display: inline;'" . ($this->fa->about ? " title='" . htmlentities($this->fa->about) . "' class='tooltips'" : "") . ">" . $this->fa->label . "</label>";
-        $html .= $this->model->render($this->fa, $this->rtrn);
+        $html .= "<label style='display: inline;'" . ($this->child->about ? " title='" . htmlentities($this->child->about) . "' class='tooltips'" : "") . ">" . $this->child->label . "</label>";
+        $html .= $this->child->render('view', $this->props);
         $html .= "</li>";
     break;
     case 'after':
-        if (count($this->fas)) {
+        if (count($this->children)) {
             $html .= '</ul>';
         }
     break;

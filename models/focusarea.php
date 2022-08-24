@@ -65,26 +65,44 @@ class FocusArea extends Relational
      * @param   bool    $save   Save to selected attribute
      * @return  object  Relational class
      */
-    public function fromTags($tags, $save=true) {
+    public static function fromTags($tags) {
 		$tag_ids = $tags->fieldsByKey('id');
         $fas = self::all()->whereIn('tag_id', $tag_ids);
-        if ($save) {
-            $this->set('selected', $fas->copy());
-        }
         return $fas;
 	}
 
     /**
+     * Retrieve focus areas by object relationship
+     * 
+     * @param   integer $oid    Master type id
+     * @param   string  $from   Object table
+     * @return  object  Relational class
+     */
+    public static function fromObject($oid, $from='publication_master_types') {
+        $fas = self::blank()
+            ->select('#__focus_areas.*')
+            ->select('O.mandatory_depth AS O_mandatory_depth') // Remove this once old depths are removed from FA table
+            ->select('O.multiple_depth AS O_multiple_depth')
+            ->select('O.ordering AS O_ordering')
+            ->join('#__focus_areas_object O', '#__focus_areas.id', 'O.faid')
+            ->whereEquals('O.objectid', $oid)
+            ->whereEquals('O.tbl', $from)
+            ->order('O.ordering', 'asc')
+            ->order('#__focus_areas.label', 'asc');
+        return $fas;
+    }
+
+    /**
      * Retrieve focus areas by tag ids
      * 
-     * @param   array   $tags   Array of tags
      * @param   bool    $null   If true, return null parents (roots of focus area)
      * @return  object  Relational class
      */    
-    public function parents($fas, $null = false) {
-        $parents = $fas->join('#__focus_areas AS P', '#__focus_areas.parent', 'P.id', 'right')
-                       ->deselect()
-                       ->select('DISTINCT P.*');
+    public function parents($null = false) {
+        $parents = $this->copy()
+            ->join('#__focus_areas AS P', '#__focus_areas.parent', 'P.id', 'right')
+            ->deselect()
+            ->select('DISTINCT P.*');
         return ($null ? $parents->whereIsNull('P.parent') : $parents);
     }
 
@@ -93,69 +111,55 @@ class FocusArea extends Relational
      * 
      * @return  Query object
      */
-    public function roots() {
+    public static function roots() {
         return self::all()->whereIsNull('parent');
-    }
-
-    /**
-     * NOTE: MAY BE MADE REDUNDANT BY RENDER METHOD BELOW
-     * 
-	 * Recursive method for loading hierarchical focus areas (tags)
-	 *
-	 * @param   integer  $parent        Id of parent
-	 * @param	array	 $subset		Existing focus area ids
-	 * @return  void
-	 */
-	public function loadFocusArea($parent, $subset = null) {
-        $db = App::get('db'); 
-        $db->setQuery(
-            'SELECT FA.id, FA.label, FA.about, FA.tag_id, T.tag, FA.ordering, FA.other FROM `#__focus_areas` FA
-            INNER JOIN jos_tags T
-            ON T.id = FA.tag_id
-            WHERE FA.parent = ' . $parent . '
-            ORDER BY FA.ordering ASC'
-        );
-        $fas = $db->loadAssocList('id');
-		if (!is_null($subset)) {
-			$fas = array_filter($fas, function($k) use ($subset) {
-				return in_array(strtolower($k), $subset);
-			}, ARRAY_FILTER_USE_KEY);
-		}
-		foreach ($fas as &$fa) {
-			$fa['children'] = $this->loadFocusArea($fa['id'], $subset);
-		}
-		return $fas;
     }
 
     /**
 	 * Recursive method for rendering hierarchical focus areas (tags)
 	 *
-     * @param   integer $fa         Focus area to render
+     * $props:
+     *  'selected' => FocusArea class of selected focus areas (note: might be able to have this be array of ids if $rtrn != select)
+     * 
      * @param   string  $rtrn       Format to render ('search', 'select', 'view')
+     * @param   array   $props      Array of props needed for render
+     * @param   int     $depth      Depth of current recursive call
+     * 
 	 * @return  void
 	 */
-	public function render($fa, $rtrn='html') {
+	public function render($rtrn='view', $props=array(), $depth=1) {
         // Initialize
-        $selected = ($this->hasAttribute('selected') ? $this->get('selected') : null);
-        $view = ($this->hasAttribute('view') 
-            ? $this->get('view') 
-            : new View(array(
-                    'base_path' => dirname(__DIR__) . '/site',
-                    'name'      => 'tags',
-                    'layout'    => '_focusareas'
-                ))
-            );
+        if ($rtrn != 'search') {
+            if ($rtrn == 'view') {
+                $view = new \Hubzero\Component\View(
+                    array(
+                        'base_path' => dirname(__DIR__) . '/site',
+                        'name'      => 'tags',
+                        'layout'    => '_focusareas'
+                    )
+                );
+            } elseif ($rtrn == 'select') {
+                $view = new \Hubzero\Plugin\View(
+                    array(
+                        'folder'  => 'projects',
+                        'element' => 'publications',
+                        'name'    => 'draft',
+                        'layout'  => '_focusareas'
+                    )
+                );
+            }
+        }
 
         // Get children
         $tbl = $this->getTableName();
         $children = self::all()
             ->select($tbl . '.*')
             ->join('#__tags T', $tbl . '.tag_id', 'T.id')
-            ->whereEquals($tbl . '.parent', $fa->id)
+            ->whereEquals($tbl . '.parent', $this->id)
             ->order($tbl . '.ordering', 'ASC');
         
-        if (!is_null($selected)) {
-            $children->whereIn($tbl . '.id', $selected->copy()->rows()->fieldsByKey('id'));
+        if (isset($props['selected']) && ($rtrn != 'select')) {
+            $children->whereIn($tbl . '.id', $props['selected']->copy()->rows()->fieldsByKey('id'));
         }
         $children = $children->rows();
 
@@ -165,10 +169,13 @@ class FocusArea extends Relational
             case 'search':
                 $paths = array();
             break;
-            case 'html':
+            case 'view':
                 $view->set('stage', 'before')
-                    ->set('fas', $children);
+                    ->set('children', $children);
                 $html = $view->loadTemplate();
+            break;
+            case 'select':
+                $html = '';
             break;
         }
 
@@ -177,13 +184,19 @@ class FocusArea extends Relational
             switch (strtolower($rtrn))
             {
                 case 'search':
-					$paths[] = $this->render($child, 'search');
+					$paths[] = $child->render('search', $props);
                 break;
-                case 'html':
+                case 'view':
                     $view->set('stage', 'during')
-                        ->set('model', $this)
-                        ->set('fa', $child)
-                        ->set('rtrn', $rtrn);
+                        ->set('child', $child)
+                        ->set('props', $props);
+                    $html .= $view->loadTemplate();
+                break;
+                case 'select':
+                    $view->set('depth', $depth)
+                        ->set('props', $props)
+                        ->set('parent', $this->tag->get('tag'))
+                        ->set('child', $child);
                     $html .= $view->loadTemplate();
                 break;
             }
@@ -193,7 +206,7 @@ class FocusArea extends Relational
         switch (strtolower($rtrn))
         {
             case 'search':
-                $tag = $fa->tag->get('tag');
+                $tag = $this->tag->get('tag');
                 if (!count($children)) {
                     return array($tag);
                 } else {
@@ -205,82 +218,15 @@ class FocusArea extends Relational
                     );
                 }
             break;
-            case 'html':
+            case 'view':
                 $view->set('stage', 'after')
-                    ->set('fas', $children);
+                    ->set('children', $children);
                 $html .= $view->loadTemplate();
                 return $html;
             break;
+            case 'select':
+                return $html;
+            break;
         }
-    }
-
-    /**
-     * Return focus area by object relationship settings (checkbox/radio, depth)
-     *  given master type id and focus area
-     * 
-     * @param   integer $id     Focus area id
-     * @param   integer $oid    Master type id
-     * @return  array
-     */
-    public function setSelectSettings($id, $oid, $from='publication_master_types') {
-        $tbl = $this->getTableName();
-        $settings = self::blank()
-            ->select('O.mandatory_depth')
-            ->select('O.multiple_depth')
-            ->join('#__focus_areas_object O', $tbl . '.id', 'O.faid')
-            ->whereEquals('O.objectid', $oid)
-            ->whereEquals('O.faid', $id)
-            ->whereEquals('O.tbl', $from)
-            ->row();
-
-        if ($settings) {
-            $this->set('mandatory_depth', $settings->mandatory_depth);
-            $this->set('multiple_depth', $settings->multiple_depth);
-            return array(
-                'mandatory_depth' => $settings->mandatory_depth,
-                'multiple_depth' => $settings->multiple_depth
-            );
-        } else {
-            return array(
-                'mandatory_depth' => null,
-                'multiple_depth' => null
-            );
-        }
-    }
-
-    /**
-	 * Recursive method for flattening paths
-	 *
-	 * @param   integer  $array         Tree structure from loadFocusArea
-	 * @return  void
-	 */
-    public function flatten_paths(&$array, $search = false) {
-        $stack = array(); $paths = array();
-        return $this->_flatten_paths($array, $stack, $paths, $search);
-	}
-
-    private function _flatten_paths(&$array, &$stack = array(), &$paths = array(), $search = false) {
-        if (!array_key_exists('children', $array)) {
-            // Root case
-            array_walk($array, function($v) use (&$stack, &$paths, $search) {
-                $this->_flatten_paths($v, $stack, $paths, $search);
-            });
-            return $paths;
-        } else {
-            // Add to stack
-            $stack[] = array($array['id'] => ($search ? 'qfa' . $array['id'] : $array['label']));
-            if (count($array['children']) == 0) {
-                // Store stack (if exists)
-                if ($stack) {
-                    $paths[] = array_merge(...$stack);
-                }
-            } else {
-                // Call children
-                array_walk($array['children'], function($v) use (&$stack, &$paths, $search) {
-                    $this->_flatten_paths($v, $stack, $paths, $search);
-                });
-            }
-        }
-        array_pop($stack);
     }
 }
