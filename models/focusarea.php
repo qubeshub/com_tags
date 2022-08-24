@@ -261,7 +261,9 @@ class FocusArea extends Relational
         $depths = array_fill_keys($fas_tags, 0);
         foreach ($selected as $tag) {
             $levels = explode('.', $tag);
-            $depths[$levels[0]] = max($depths[$levels[0]], count($levels)-1);
+            if (isset($depths[$levels[0]])) { // In case deactivated focus area is still stored
+                $depths[$levels[0]] = max($depths[$levels[0]], count($levels)-1);
+            }
         }
 
         // Check depths against mandatory depth
