@@ -235,7 +235,7 @@ class FocusArea extends Relational
      * $props:
      *  'selected' => FocusArea class of selected focus areas (note: might be able to have this be array of ids if $rtrn != select)
      * 
-     * @param   string  $rtrn       Format to render ('search', 'select', 'view', 'flat')
+     * @param   string  $rtrn       Format to render ('search', 'select', 'view', 'flat', 'filter')
      * @param   array   $props      Array of props needed for render
      * @param   int     $depth      Depth of current recursive call
      * 
@@ -258,6 +258,14 @@ class FocusArea extends Relational
                     'element' => 'publications',
                     'name'    => 'draft',
                     'layout'  => '_focusareas'
+                )
+            );
+        } elseif ($rtrn == 'filter') {
+            $view = new \Hubzero\Component\View(
+                array(
+                    'base_path' => Component::path('com_publications') . '/site',
+                    'name'      => 'tags',
+                    'layout'    => '_filters'
                 )
             );
         }
@@ -296,6 +304,14 @@ class FocusArea extends Relational
             case 'select':
                 $html = '';
             break;
+            case 'filter':
+                $view->set('stage', 'before')
+                    ->set('depth', $depth)
+                    ->set('props', $props)
+                    ->set('parent', $this)
+                    ->set('children', $children);
+                $html = $view->loadTemplate();
+            break;
         }
 
         // Recurse step
@@ -314,6 +330,11 @@ class FocusArea extends Relational
                         ->set('child', $child)
                         ->set('props', $props);
                     $html .= $view->loadTemplate();
+                break;
+                case 'filter':
+                    if ($child->children()->count() > 0) {
+                        $html .= $child->render('filter', $props, ++$depth);
+                    }
                 break;
                 case 'select':
                     $view->set('depth', $depth)
@@ -350,6 +371,9 @@ class FocusArea extends Relational
             break;
             case 'select':
                 return $html;
+            break;
+            case 'filter':
+                return $html .= '</div>';
             break;
         }
     }
