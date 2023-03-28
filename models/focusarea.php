@@ -303,7 +303,8 @@ class FocusArea extends Relational
             switch (strtolower($rtrn))
             {
                 case 'search':
-					$paths[] = $child->render('search', $props);
+					$paths[] = array($this->tag->get('tag') . '.' . $child->tag->get('tag'));
+                    $paths[] = $child->render('search', $props);
                 break;
                 case 'flat':
                     $flattree[] = $child->render('flat', $props, $depth);
@@ -328,16 +329,10 @@ class FocusArea extends Relational
         switch (strtolower($rtrn))
         {
             case 'search':
-                $tag = $this->tag->get('tag');
                 if (!count($children)) {
-                    return array($tag);
+                    return array();
                 } else {
-                    return array_map(
-                        function($v) use ($tag) {
-                            return $tag . '.' . $v;
-                        },
-                        array_merge(...$paths)
-                    );
+                    return array_merge(...$paths);
                 }
             break;
             case 'flat':
