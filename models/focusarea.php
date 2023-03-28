@@ -328,13 +328,17 @@ class FocusArea extends Relational
                 case 'view':
                     $view->set('stage', 'during')
                         ->set('child', $child)
+                        ->set('parent', $this->tag->get('tag'))
                         ->set('props', $props);
                     $html .= $view->loadTemplate();
                 break;
                 case 'filter':
-                    if ($child->children()->count() > 0) {
-                        $html .= $child->render('filter', $props, ++$depth);
-                    }
+                    $view->set('stage', 'during')
+                        ->set('child', $child)
+                        ->set('parent', $this)
+                        ->set('depth', $depth)
+                        ->set('props', $props);
+                    $html .= $view->loadTemplate();
                 break;
                 case 'select':
                     $view->set('depth', $depth)
@@ -373,7 +377,10 @@ class FocusArea extends Relational
                 return $html;
             break;
             case 'filter':
-                return $html .= '</div>';
+                $view->set('stage', 'after')
+                    ->set('children', $children);
+                $html .= $view->loadTemplate();
+                return $html;
             break;
         }
     }
@@ -390,6 +397,8 @@ class FocusArea extends Relational
 	 */
     public function checkStatus($selected)
 	{
+        // For my wonky vagrant issues only
+        // return 1;
         $fas_tags = $this->tags()->rows()->fieldsByKey('tag');
 
         // Calculate depth for each focus area
