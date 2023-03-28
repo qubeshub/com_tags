@@ -119,7 +119,7 @@ class FocusArea extends Relational
     }
 
     /**
-     * Get parents
+     * Get parents (if $null is false, only works for one focus area at the moment)
      * 
      * @param   bool    $null   If true, return null parents (roots of focus area)
      * @return  object  Relational class
@@ -129,7 +129,7 @@ class FocusArea extends Relational
             ->join('#__focus_areas AS P', '#__focus_areas.parent', 'P.id', 'right')
             ->deselect()
             ->select('DISTINCT P.*');
-        return ($null ? $parents->whereIsNull('P.parent') : $parents);
+        return ($null ? $parents->whereIsNull('P.parent') : $parents->whereEquals('jos_focus_areas.id', $this->id));
     }
 
     /**
