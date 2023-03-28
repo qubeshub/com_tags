@@ -393,18 +393,21 @@ class FocusArea extends Relational
         $fas_tags = $this->tags()->rows()->fieldsByKey('tag');
 
         // Calculate depth for each focus area
-        $depths = array_fill_keys($fas_tags, 0);
+        // Selected tags will be in parent.child form in focus area path order, e.g.
+        //  resourcesqubes.teachingmaterial precedes teachingmaterial.instructionalsetting
+        $depths = array(); foreach ($fas_tags as $fa) { $depths[$fa] = array($fa => 0); }
         foreach ($selected as $tag) {
             $levels = explode('.', $tag);
-            if (isset($depths[$levels[0]])) { // In case deactivated focus area is still stored
-                $depths[$levels[0]] = max($depths[$levels[0]], count($levels)-1);
+            if (isset($depths[$levels[0]])) {
+                $fa = $levels[0];
             }
+            $depths[$fa][$levels[1]] = $depths[$fa][$levels[0]] + 1;
         }
 
         // Check depths against mandatory depth
         foreach ($this as $fa) {
             $tag = $fa->tag->get('tag');
-            if ($depths[$tag] < $fa->mandatory_depth) {
+            if (max($depths[$tag]) < $fa->mandatory_depth) {
                 return 0;
             }
         }
