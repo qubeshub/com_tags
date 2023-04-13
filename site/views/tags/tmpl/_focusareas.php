@@ -17,7 +17,7 @@ switch ($this->stage) {
     break;
     case 'during':
         $html .= "<li class='fa'>";
-        $html .= "<label style='display: inline;'" . ($this->child->about ? " title='" . htmlentities($this->child->about) . "' class='tooltips'" : "") . ">" . $this->child->label . "</label>";
+        $html .= "<label style='display: inline;'" . ($this->child->about ? " title='" . htmlentities($this->child->about) . "' class='tooltips'" : "") . "><a href='" . Route::url('/com_publications/browse?fl=' . $this->child->id) . "'>" . $this->child->label . "</a></label>";
         $html .= $this->child->render('view', $this->props);
         $html .= "</li>";
     break;
