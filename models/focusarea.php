@@ -319,8 +319,12 @@ class FocusArea extends Relational
             switch (strtolower($rtrn))
             {
                 case 'search':
-					$paths[] = array($this->tag->get('tag') . '.' . $child->tag->get('tag'));
-                    $paths[] = $child->render('search', $props);
+                    $path = $this->tag->get('tag') . '.' . $child->tag->get('tag');
+					$paths[] = array($path);
+                    // Recurse if child is filtered
+                    if (!isset($props['filters']) || in_array($path, $props['filters'])) {
+                        $paths[] = $child->render('search', $props);
+                    }
                 break;
                 case 'flat':
                     $flattree[] = $child->render('flat', $props, $depth);
