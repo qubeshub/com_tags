@@ -132,6 +132,15 @@ class FocusArea extends Relational
         return ($null ? $parents->whereIsNull('P.parent') : $parents->whereEquals('jos_focus_areas.id', $this->id));
     }
 
+    public function ancestors($withme = 0) {
+        $fa = $this;
+        $ancestors = $withme ? array($fa) : array();
+        while ($parent_id = $fa->parent) {
+            $ancestors[] = ($fa = FocusArea::oneOrFail($parent_id));
+        }
+        return $ancestors;
+    }
+
     /**
      * Get children
      * 
@@ -457,5 +466,47 @@ class FocusArea extends Relational
         }
 
         return array_keys($tags);
+    }
+
+    public static function getAutocomplete() {
+        $search = trim(Request::getString('value', ''));
+
+        $tbl = self::blank()->getTableName();
+
+        $rows = self::all()->purgeCache()
+            ->select($tbl . '.*')
+            ->limit(20)
+            ->start(0)
+            ->whereLike($tbl . '.label', $search, 1)
+            ->orWhereLike($tbl . '.about', $search, 1)
+            ->rows();
+
+        // Output search results in JSON format
+		$json = array();
+		if (count($rows) > 0)
+		{
+			foreach ($rows as $row)
+			{
+				$name = str_replace("\n", '', stripslashes(trim($row->get('label')))) . ' (' . $row->get('id') . ')';
+				$name = str_replace("\r", '', $name);
+
+				$item = array(
+					'id'   => $row->get('id'),
+					'name' => $name
+				);
+
+				// Push exact matches to the front
+				if ($row->get('label') == $search)
+				{
+					array_unshift($json, $item);
+				}
+				else
+				{
+					$json[] = $item;
+				}
+			}
+		}
+
+        return json_encode($json);
     }
 }

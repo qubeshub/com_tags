@@ -241,16 +241,19 @@ class Objct extends Relational
 	 * @param   integer  $newtagid  ID of tag to copy to
 	 * @return  boolean  True if records copied
 	 */
-	public static function copyTo($oldtagid=null, $newtagid=null)
+	public static function copyTo($oldtagid=null, $newtagid=null, $tbl=null)
 	{
 		if (!$oldtagid || !$newtagid)
 		{
 			return false;
 		}
 
-		$rows = self::all()
-			->whereEquals('tagid', $oldtagid)
-			->rows();
+		$objs = self::all()
+			->whereEquals('tagid', $oldtagid);
+		if ($tbl) {
+			$objs = $objs->whereEquals('tbl', $tbl);
+		}
+		$rows = $objs->rows();
 
 		if ($rows)
 		{
@@ -258,9 +261,13 @@ class Objct extends Relational
 
 			foreach ($rows as $row)
 			{
-				$row->set('id', null)
-					->set('tagid', $newtagid)
-					->save();
+				// Add item if it doesn't already exist
+				$scope = ($tbl ? $tbl : $row->tbl);
+				if (!self::oneByScoped($scope, $row->objectid, $newtagid, 0, $row->label)->get('id')) {
+					$row->set('id', null)
+						->set('tagid', $newtagid)
+						->save();
+				}
 
 				$entries[] = $row->get('id');
 			}

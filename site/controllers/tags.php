@@ -10,6 +10,7 @@ namespace Components\Tags\Site\Controllers;
 use Hubzero\Component\SiteController;
 use Components\Tags\Models\Cloud;
 use Components\Tags\Models\Tag;
+use Components\Tags\Models\FocusArea;
 use Hubzero\Utility\Str;
 use Hubzero\Utility\Sanitize;
 use Document;
@@ -318,6 +319,13 @@ class Tags extends SiteController
 	 */
 	public function autocompleteTask()
 	{
+		$stype = Request::getString('stype', '');
+
+		if ($stype == 'focusareas') {
+		 	echo FocusArea::getAutocomplete();
+			return;
+		}
+
 		$filters = array(
 			'limit'  => 20,
 			'start'  => 0,

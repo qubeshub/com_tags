@@ -11,6 +11,11 @@ defined('_HZEXEC_') or die();
 $canDo = Components\Tags\Helpers\Permissions::getActions();
 
 Toolbar::title(Lang::txt('COM_TAGS') . ': FOCUS AREAS', 'focusareas');
+if ($canDo->get('core.edit'))
+{
+	Toolbar::custom('pierce', 'copy', '', 'COM_TAGS_PIERCE', false);
+	Toolbar::spacer();
+}
 if ($canDo->get('core.create'))
 {
 	Toolbar::addNew();

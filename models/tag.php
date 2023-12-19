@@ -564,9 +564,10 @@ class Tag extends Relational
 	 * Copy associations from this tag to another
 	 *
 	 * @param   integer  $tag_id  ID of tag to copy associations to
+	 * @param   string   $tbl     Table to copy associations from
 	 * @return  boolean
 	 */
-	public function copyTo($tag_id)
+	public function copyTo($tag_id, $tbl=null)
 	{
 		if (!$tag_id)
 		{
@@ -576,7 +577,7 @@ class Tag extends Relational
 
 		// Get all the associations to this tag
 		// Loop through the associations and link them to a different tag
-		if (!Objct::copyTo($this->get('id'), $tag_id))
+		if (!Objct::copyTo($this->get('id'), $tag_id, $tbl))
 		{
 			$this->addError($to->getError());
 			return false;

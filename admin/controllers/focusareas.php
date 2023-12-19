@@ -10,6 +10,7 @@ namespace Components\Tags\Admin\Controllers;
 use Hubzero\Component\AdminController;
 use Components\Tags\Models\FocusArea;
 use Components\Tags\Models\Tag;
+use Components\Tags\Models\Objct;
 use stdClass;
 
 /**
@@ -258,5 +259,154 @@ class Focusareas extends AdminController
 		Notify::success(Lang::txt('COM_TAGS_FOCUS_AREA_REMOVED'));
 
 		$this->cancelTask();
+	}
+
+	/**
+	 * Cancel a task and redirect to the main listing
+	 *
+	 * @return  void
+	 */
+	public function cancelTask()
+	{
+		$return = Request::getString('return', 'index.php?option=' . $this->_option . '&controller=focusareas', 'get');
+
+		App::redirect(
+			Route::url($return, false)
+		);
+	}
+
+	/**
+	 * Copy all tag associations from one focus area to another
+	 *
+	 * @return  void
+	 */
+	public function pierceTask()
+	{
+		// Permissions check
+		if (!User::authorise('core.edit', $this->_option)
+		 && !User::authorise('core.manage', $this->_option))
+		{
+			App::abort(403, Lang::txt('JERROR_ALERTNOAUTHOR'));
+		}
+
+		// Incoming
+		$ids = Request::getArray('id', array());
+		$ids = (!is_array($ids) ? array($ids) : $ids);
+
+		$step = Request::getInt('step', 1);
+		$step = ($step) ? $step : 1;
+
+		// Make sure we have some IDs to work with
+		if ($step == 1
+		 && (!$ids || count($ids) < 1))
+		{
+			return $this->cancelTask();
+		}
+
+		$idstr = implode(',', $ids);
+
+		switch ($step)
+		{
+			case 1:
+				Request::setVar('hidemainmenu', 1);
+
+				$focusareas = array();
+
+				// Loop through the IDs of the tags we want to merge
+				foreach ($ids as $id)
+				{
+					// Load the tag's info
+					$focusareas[] = Focusarea::oneOrFail(intval($id));
+				}
+
+				// Get distinct tbl field from jos_tags_object
+				$tables = Objct::all()
+					->select('DISTINCT tbl')
+					->where('tbl', '!=', '')
+					->rows()
+					->fieldsByKey('tbl');
+
+				// Output the HTML
+				$this->view
+					->set('step', 2)
+					->set('idstr', $idstr)
+					->set('focusareas', $focusareas)
+					->set('tables', $tables)
+					->display();
+			break;
+
+			case 2:
+				// Check for request forgeries
+				Request::checkToken();
+
+				// Get the string of focus area ids to copy associations from
+				$from = Request::getVar('ids', '', 'post');
+				if (!$from) {
+					Notify::error("Did not specify a focus area to copy associations from");
+					$this->cancelTask();
+				}
+				$from_ids = explode(',', $from);
+
+				// Get each focus area
+				$from_tags = array_map(function($id) { 
+						return FocusArea::oneOrFail($id)->tag;
+					}, $from_ids);
+
+				// Get each focus areas ancestors (to filter out later)
+				$from_anc = array_merge(...array_map(function($id) { 
+					return array_map(function($anc) {
+						return $anc->tag_id;
+					}, FocusArea::oneOrFail($id)->ancestors(0));
+				}, $from_ids));
+
+				// Get the string of focus area ids to copy associations to
+				$to = Request::getVar('newfa', '', 'post');
+				if (!$to) {
+					Notify::error("Did not specify a focus area to copy associations to");
+					$this->cancelTask();
+				}
+				$to_ids = explode(',', $to);
+
+				// Get ancestors of each focus area (if exists)
+				// Might need to create new focus area, so do that here
+				$to_aids = array_merge(...array_map(function($id) { 
+					$fa = FocusArea::oneOrNew($id);
+					return $fa->ancestors(1);
+				}, $to_ids));
+
+				// Make sure there are no duplicates, filter out from ancestors, and store as tags
+				$to_tags = array_reduce($to_aids, function($carry, $item) use ($from_anc) {
+					if (!in_array($item->tag_id, $from_anc) && (empty($carry) || !in_array($item->tag_id, array_keys($carry)))) {
+						$carry[$item->tag_id] = $item->tag;
+					}
+					return $carry;
+				});
+
+				// Get the table to copy associations from
+				$tbl = Request::getVar('table', '', 'post');
+				$tbl = $tbl ? $tbl : null;
+
+				// Copy all tag associations from one focus area to another
+				foreach ($from_tags as $from_tag) {
+					foreach ($to_tags as $to_tag) {
+						// echo "Would copy $tbl from " . $from_tag->id . " to " . $to_tag->id . "<br>";
+						if (!$from_tag->copyTo($to_tag->id, $tbl)) {
+							Notify::error($from_tag->getError());
+						}
+					}
+				}
+
+				if ($this->getError())
+				{
+					Notify::error($this->getError());
+				}
+				else
+				{
+					Notify::success(Lang::txt('COM_TAGS_FOCUS_AREAS_COPIED'));
+				}
+
+				$this->cancelTask();
+			break;
+		}
 	}
 }
