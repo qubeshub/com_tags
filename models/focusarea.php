@@ -423,7 +423,9 @@ class FocusArea extends Relational
             if (isset($depths[$levels[0]])) {
                 $fa = $levels[0];
             }
-            $depths[$fa][$levels[1]] = $depths[$fa][$levels[0]] + 1;
+            if (isset($depths[$fa][$levels[0]])) { // Needed in case tagged (i.e. selected) but alignment not set
+                $depths[$fa][$levels[1]] = $depths[$fa][$levels[0]] + 1;
+            }
         }
 
         // Check depths against mandatory depth
