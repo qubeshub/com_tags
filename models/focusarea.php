@@ -132,6 +132,28 @@ class FocusArea extends Relational
         return ($null ? $parents->whereIsNull('P.parent') : $parents->whereEquals('jos_focus_areas.id', $this->id));
     }
 
+    /**
+     * Order focus areas by alignment with an object
+     *
+     * This method is helpful to reduce code duplication, but it is problematic
+     * since it needs to know what the table name is for joins. This is currently
+     * used after calling FocusArea::parents(), where the table name is 'P'.
+     * 
+     * @param   int     $objectid   Object id
+     * @param   string  $fa_name    Focus area table name (for joins)
+     * @param   string  $tbl        Object table
+     * @param   string  $dir        Order direction
+     * @return  object  Relational class
+     */
+    public function orderByAlignment($objectid, $fa_name = '#__focus_areas', $tbl='publication_master_types', $dir='asc') {
+        return $this->copy()
+            ->join('#__focus_areas_object AS O', $fa_name . '.id', 'O.faid', 'right')
+			->select('O.ordering')
+			->whereEquals('O.tbl', $tbl)
+			->whereEquals('O.objectid', $objectid)
+			->order('O.ordering', $dir);
+    }
+
     public function ancestors($withme = 0) {
         $fa = $this;
         $ancestors = $withme ? array($fa) : array();
