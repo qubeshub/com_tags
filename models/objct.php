@@ -63,8 +63,7 @@ class Objct extends Relational
 	protected $rules = array(
 		'tbl'      => 'notempty',
 		'tagid'    => 'positive|nonzero',
-		'objectid' => 'positive|nonzero',
-		'label'	   => 'notempty'
+		'objectid' => 'positive|nonzero'
 	);
 
 	/**
@@ -248,28 +247,39 @@ class Objct extends Relational
 			return false;
 		}
 
-		$objs = self::all()
-			->whereEquals('tagid', $oldtagid);
-		if ($tbl) {
-			$objs = $objs->whereEquals('tbl', $tbl);
-		}
-		$rows = $objs->rows();
+		// Get all objects associated with the old tag but NOT the new tag
+		// This is a left outer join with exclusion (https://stevestedman.com/2015/03/mysql-join-types-poster/)
+		// This is a workaround for the fact that Hubzero's database abstraction layer doesn't support exclusion joins
+		// Refactors previous code that checked database for each individual object (this is more efficient)
+		$scope = ($tbl ? ' AND O.tbl = "' . $tbl . '"' : '');
+		$db = App::get('db');
+		$db->setQuery('SELECT old.id
+			FROM (SELECT *
+				FROM `#__tags_object` O
+				WHERE O.tagid = ' . $oldtagid . $scope . ') old
+			LEFT JOIN
+				(SELECT *
+				FROM `#__tags_object` O
+				WHERE O.tagid = ' . $newtagid . $scope . ') new
+			ON old.objectid = new.objectid
+			WHERE new.id is null');
+		$ids = $db->query()->loadColumn();
 
-		if ($rows)
+		if ($ids)
 		{
 			$entries = array();
 
-			foreach ($rows as $row)
+			foreach ($ids as $id)
 			{
-				// Add item if it doesn't already exist
-				$scope = ($tbl ? $tbl : $row->tbl);
-				if (!self::oneByScoped($scope, $row->objectid, $newtagid, 0, $row->label)->get('id')) {
-					$row->set('id', null)
-						->set('tagid', $newtagid)
-						->save();
-				}
+				$obj = self::oneOrFail($id);
+				$obj->set('id', 0)
+					->set('tagid', $newtagid);
 
-				$entries[] = $row->get('id');
+				if (!$obj->save()) {
+					Notify::error($obj->getError());
+					continue;
+				}
+				$entries[] = $id;
 			}
 
 			$data = new stdClass;
