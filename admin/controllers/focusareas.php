@@ -448,4 +448,42 @@ class Focusareas extends AdminController
 			break;
 		}
 	}
+
+	/**
+	 * Realign all tag associations
+	 *
+	 * @return  void
+	 */
+	public function realignTask()
+	{
+		// Permissions check
+		if (!User::authorise('core.edit', $this->_option)
+		 && !User::authorise('core.manage', $this->_option))
+		{
+			App::abort(403, Lang::txt('JERROR_ALERTNOAUTHOR'));
+		}
+
+		// Check for request forgeries
+		Request::checkToken();
+
+		// Incoming
+		$ids = Request::getArray('id', array());
+		$ids = (!is_array($ids) ? array($ids) : $ids);
+
+		// Realign publications associated with focus areas
+		foreach ($ids as $id) {
+			FocusArea::oneOrFail($id)->realign();
+		}
+
+		if ($this->getError())
+		{
+			Notify::error($this->getError());
+		}
+		else
+		{
+			Notify::success(Lang::txt('COM_TAGS_FOCUS_AREAS_REALIGNED'));
+		}
+
+		$this->cancelTask();
+	}
 }

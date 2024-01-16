@@ -15,6 +15,7 @@ if ($canDo->get('core.edit'))
 {
 	Toolbar::custom('edit', 'edit', '', 'COM_FOCUSAREAS_EDIT', false);
 	Toolbar::custom('pierce', 'copy', '', 'COM_FOCUSAREAS_PIERCE', false);
+	Toolbar::custom('realign', 'refresh', '', 'COM_FOCUSAREAS_REALIGN', false);
 	Toolbar::spacer();
 }
 if ($canDo->get('core.create'))
