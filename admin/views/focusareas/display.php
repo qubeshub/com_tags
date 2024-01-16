@@ -13,7 +13,8 @@ $canDo = Components\Tags\Helpers\Permissions::getActions();
 Toolbar::title(Lang::txt('COM_TAGS') . ': FOCUS AREAS', 'focusareas');
 if ($canDo->get('core.edit'))
 {
-	Toolbar::custom('pierce', 'copy', '', 'COM_TAGS_PIERCE', false);
+	Toolbar::custom('edit', 'edit', '', 'COM_FOCUSAREAS_EDIT', false);
+	Toolbar::custom('pierce', 'copy', '', 'COM_FOCUSAREAS_PIERCE', false);
 	Toolbar::spacer();
 }
 if ($canDo->get('core.create'))
@@ -24,6 +25,8 @@ if ($canDo->get('core.delete'))
 {
 	Toolbar::deleteList('COM_TAGS_CONFIRM_DELETE');
 }
+Toolbar::spacer();
+Toolbar::help('focusareas');
 ?>
 
 <form action="<?php echo Route::url('index.php?option=' . $this->option . '&controller=' . $this->controller); ?>" method="post" name="adminForm" id="adminForm">

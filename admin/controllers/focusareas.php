@@ -132,19 +132,24 @@ class Focusareas extends AdminController
 		if (!is_object($fa))
 		{
 			// Incoming
-			$id = Request::getArray('id', array(0));
-			if (is_array($id) && !empty($id))
-			{
-				$id = $id[0];
-			}
+			$ids = Request::getArray('id', array(0));
 
-			$fa = FocusArea::oneOrNew(intval($id));
+			$fas = array_map(function($id) { return FocusArea::oneOrNew(intval($id)); }, $ids);
+		} else {
+			// Should be one focus area object - turn into an array
+			$fas = array($fa);
 		}
-        $flattree = $fa->render('flat');
+		// Only allow editing of multiple focus area as roots
+		if ((count($fas) > 1) && !array_reduce($fas, function($carry, $fa) { return $carry && is_null($fa->parent); }, true)) {
+			Notify::error("Only focus area roots can be edited together");
+			$this->cancelTask();
+		}
+
+        $flattree = array_merge(...array_map(function($fa) { return $fa->render('flat'); }, $fas));
 
 		// Output the HTML
 		$this->view
-			->set('fa', $fa)
+			->set('fas', $fas)
             ->set('flattree', $flattree)
 			->setLayout('edit')
 			->display();
@@ -161,8 +166,10 @@ class Focusareas extends AdminController
 		Request::checkToken();
 
 		// Incoming
-		$parent     = Request::getInt('parent', null);
-		$flattree	= Request::getString('flattree', '');
+		$old_fas_ids = Request::getString('ids', ''); // Original focus area ids
+		$old_ordering = Request::getInt('ordering', null); // Original ordering of first root (if more than one, then null)
+		$parent = Request::getInt('parent', null); // Parent of first root (if more than one, then null)
+		$flattree	= Request::getString('flattree', ''); // JSON string of updated focus areas
 
 		// Permissions check
 		if (!User::authorise('core.edit', $this->_option)
@@ -171,13 +178,13 @@ class Focusareas extends AdminController
 			App::abort(403, Lang::txt('JERROR_ALERTNOAUTHOR'));
 		}
 
-		$new_fas = json_decode($flattree);
-		$new_fas[0]->parent = $parent; // Was set to null for sortable tree to work - set back
-		$new_fas_ids = array_map(function($fa) { return (isset($fa->id) ? $fa->id : '0'); }, $new_fas);
-
 		// Get original focus areas
-		$old_fa = FocusArea::oneOrNew(intval($new_fas[0]->id)); // 0th should be same
-		$old_fas = $old_fa->render('flat');
+		$old_fas_ids = explode(',', $old_fas_ids);
+		$old_fas = array_merge(...array_map(function($id) { return FocusArea::oneOrNew(intval($id))->render('flat'); }, $old_fas_ids));
+
+		// Get new focus areas
+		$new_fas = json_decode($flattree);
+		$new_fas_ids = array_map(function($fa) { return (isset($fa->id) ? $fa->id : '0'); }, $new_fas);
 
 		// Delete 
 		$delete = array_filter($old_fas, function($fa) use ($new_fas_ids) {
@@ -191,29 +198,58 @@ class Focusareas extends AdminController
 		// Add or modify
 		$subs = array(); // New id substitutions
 		$ordering = array();
+		if (!is_null($parent)) { $ordering[$parent] = $old_ordering; }
+		$root_ids = array(); // New roots (for ordering adjustment later)
 		foreach ($new_fas as $fa) {
 			$new_fa = FocusArea::oneOrNew(isset($fa->id) ? intval($fa->id) : 0);
 			$id = (string) $new_fa->get('id');
-			if (!isset($ordering[$id])) { $ordering[$id] = 0; }
-			// Save substitution (new focus area)
+			if (is_null($fa->parent)) { // Root
+				$root_ids[] = $id;
+				$fa->parent = $parent; // Was set to null for sortable tree to work - set back
+			}
+			
+			// Initialize ordering for this focus area's children
+			if (!isset($ordering[$id])) { $ordering[$id] = 1; }
+			
+			// Save substitution (new focus area which has a negative id)
 			if (intval($fa->id) < 0) {
 				$subs[$fa->id] = $id;
 			}
-			// Use substitution
+
+			// Use substitution to match negative focus area id with correct parent focus area id
 			if ($fa->parent && (intval($fa->parent) < 0)) {
 				$fa->parent = $subs[$fa->parent];
 			}
+
+			// Set focus area properties
 			$new_fa->set('label', $fa->name);
 			$new_fa->set('about', $fa->subtitle);
 			$new_fa->set('parent', $fa->parent);
-			if (is_null($fa->parent) || isset($ordering[$fa->parent])) {
-				$new_fa->set('ordering', $fa->parent ? ++$ordering[$fa->parent] : null);
-			}
+			$new_fa->set('ordering', $fa->parent ? $ordering[$fa->parent]++ : null);
 			if (!$new_fa->save()) {
 				Notify::error($new_fa->getError());
 				return $this->editTask($new_fa);
 			}
 		}
+
+		// Update ordering of all unedited root siblings to account for edited siblings at root level
+		$order_inc = count($root_ids)-1;
+		if (!is_null($parent) && ($order_inc != 0)) { // If not root focus area and there is a change in local tree roots
+			$siblings = FocusArea::oneOrFail($parent)->children(); // Get root siblings, including self
+			foreach ($siblings as $sibling) {
+				if (!in_array($sibling->id, $root_ids) && ($sibling->ordering > $old_ordering)) {
+					$sibling->set('ordering', $sibling->ordering + $order_inc);
+					if (!$sibling->save()) {
+						Notify::error($sibling->getError());
+						return $this->editTask($sibling);
+					}
+				}
+			}
+		}
+
+		// Realign publications to new focus areas
+
+		// Update solr index
 
         Notify::success(Lang::txt('COM_TAGS_FOCUS_AREA_SAVED'));
 

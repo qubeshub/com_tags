@@ -34,7 +34,9 @@ $this->js()
 <form action="<?php echo Route::url('index.php?option=' . $this->option . '&controller=' . $this->controller); ?>" method="post" name="adminForm" id="item-form" class="editform form-validate" data-invalid-msg="<?php echo $this->escape(Lang::txt('JGLOBAL_VALIDATION_FORM_FAILED'));?>">
 
     <input type="hidden" name="flattree" value='<?php echo htmlspecialchars(json_encode($this->flattree), ENT_QUOTES); ?>' />
-    <input type="hidden" name="parent" value="<?php echo $this->fa->parent; ?>" />
+    <input type="hidden" name="ids" value="<?php echo implode(',', array_map(function($fa) { return $fa->id; }, $this->fas)); ?>" />
+	<input type="hidden" name="parent" value="<?php echo $this->fas[0]->parent; ?>" />
+	<input type="hidden" name="ordering" value="<?php echo $this->fas[0]->ordering; ?>" />
 	<input type="hidden" name="option" value="<?php echo $this->option; ?>" />
 	<input type="hidden" name="controller" value="<?php echo $this->controller; ?>" />
 	<input type="hidden" name="task" value="save" />
