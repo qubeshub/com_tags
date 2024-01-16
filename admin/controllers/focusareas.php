@@ -182,7 +182,7 @@ class Focusareas extends AdminController
 		$old_fas_ids = explode(',', $old_fas_ids);
 		$old_fas = array_merge(...array_map(function($id) { return FocusArea::oneOrNew(intval($id))->render('flat'); }, $old_fas_ids));
 
-		// Get new focus areas
+		// Get new or updated focus areas
 		$new_fas = json_decode($flattree);
 		$new_fas_ids = array_map(function($fa) { return (isset($fa->id) ? $fa->id : '0'); }, $new_fas);
 
@@ -201,8 +201,8 @@ class Focusareas extends AdminController
 		if (!is_null($parent)) { $ordering[$parent] = $old_ordering; }
 		$root_ids = array(); // New roots (for ordering adjustment later)
 		foreach ($new_fas as $fa) {
-			$new_fa = FocusArea::oneOrNew(isset($fa->id) ? intval($fa->id) : 0);
-			$id = (string) $new_fa->get('id');
+			$new_fa = FocusArea::oneOrNew(isset($fa->id) ? $fa->id : 0);
+			$id = $new_fa->id;
 			if (is_null($fa->parent)) { // Root
 				$root_ids[] = $id;
 				$fa->parent = $parent; // Was set to null for sortable tree to work - set back
@@ -248,7 +248,10 @@ class Focusareas extends AdminController
 		}
 
 		// Realign publications to new focus areas
-
+		foreach ($root_ids as $root_id) {
+			FocusArea::oneOrFail($root_id)->realign();
+		}
+		
 		// Update solr index
 
         Notify::success(Lang::txt('COM_TAGS_FOCUS_AREA_SAVED'));

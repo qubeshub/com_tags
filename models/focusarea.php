@@ -13,6 +13,8 @@ use Components\Tags\Models\Alignment;
 use stdClass;
 
 require_once __DIR__ . DS . 'alignment.php';
+require_once __DIR__ . DS . 'log.php';
+
 /**
  * Model class for publication version author
  */
@@ -417,6 +419,53 @@ class FocusArea extends Relational
                 $html .= $view->loadTemplate();
                 return $html;
             break;
+        }
+    }
+
+    /**
+     * Realigns the focus area (i.e. recursively copies associations from children to parents).
+     * NOTE: Be careful - this will delete all object associations for the root focus area.
+     *
+     * @param int $depth The depth of the realignment.
+     * @return void
+     */
+    public function realign($depth = 0) {
+        // Recursively realign children and copy associations to parent
+        foreach ($this->children as $child) {
+            $child->realign($depth+1);
+            if (!is_null($this->parent)) {
+                $child->tag->copyTo($this->tag_id);
+            }
+        }
+        // Copy to all ancestors (except root)
+        if ($depth == 0) {
+            $fa = $this;
+            while (!is_null($fa->parent)) {
+                $parent = FocusArea::oneOrFail($fa->parent);
+                if (!is_null($parent->parent)) { // Don't store associations in root focus areas
+                    $fa->tag->copyTo($parent->tag_id);
+                }
+                $fa = $parent;
+            }
+            // $fa is at root - remove all associations
+            $entries = array();
+            foreach ($fa->tag->objects()->rows() as $row)
+		    {
+			    $row->destroy();
+                $entries[] = $row->objectid;
+		    }
+            if (count($entries)) {
+                $data = new stdClass;
+			    $data->entries = $entries;
+
+                $log = Log::blank();
+                $log->set([
+                    'tag_id'   => $fa->tag_id,
+                    'action'   => 'objects_removed',
+                    'comments' => json_encode($data)
+                ]);
+                $log->save();
+            }
         }
     }
 
