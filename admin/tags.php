@@ -28,11 +28,6 @@ $task = \Request::getCmd('task', '');
 	($controllerName == 'entries')
 );
 \Submenu::addEntry(
-	\Lang::txt('COM_TAGS_RELATIONSHIPS'),
-	\Route::url('index.php?option=com_tags&controller=relationships'),
-	($controllerName == 'relationships' && $task != 'meta' && $task != 'updatefocusareas')
-);
-\Submenu::addEntry(
 	\Lang::txt('COM_TAGS_FOCUS_AREAS'),
 	\Route::url('index.php?option=com_tags&controller=focusareas'),
 	($controllerName == 'focusareas')
