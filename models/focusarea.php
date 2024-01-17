@@ -452,7 +452,7 @@ class FocusArea extends Relational
             foreach ($fa->tag->objects()->rows() as $row)
 		    {
 			    $row->destroy();
-                $entries[] = $row->objectid;
+                $entries[] = $row->objectid . ' (' . $row->tbl . ')';
 		    }
             if (count($entries)) {
                 $data = new stdClass;
