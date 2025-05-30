@@ -155,11 +155,11 @@ class Tags extends SiteController
 		$this->view->filters = array(
 			'limit' => Request::getInt('limit', Config::get('list_limit')),
 			'start' => Request::getInt('limitstart', 0),
-			'sort'  => Request::getString('sort', 'date')
+			'sort'  => Request::getCmd('sort', 'date')
 		);
 		if (!in_array($this->view->filters['sort'], array('date', 'title')))
 		{
-			App::abort(404, Lang::txt('Invalid sort value of "%s".', $this->view->filters));
+			App::abort(404, Lang::txt('Invalid sort value of "%s".', $this->view->filters['sort']));
 		}
 
 		$parent = Request::getString('parent', '');
