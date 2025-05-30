@@ -330,7 +330,6 @@ class Tags extends SiteController
 		}
 
 		$filters = array(
-			'limit'  => 20,
 			'start'  => 0,
 			'search' => trim(Request::getString('value', ''))
 		);
@@ -349,6 +348,8 @@ class Tags extends SiteController
 		// Output search results in JSON format
 		$json = array();
 		$exactMatches = array();
+		$beginsWithWord =array();
+		$beginWith = array();
 
 		if (count($rows) > 0)
 		{
@@ -367,15 +368,45 @@ class Tags extends SiteController
 				{
 					$exactMatches[] = $item;
 				}
-				// Prioritize beginning of the string
-				elseif (strpos($row->get('tag'), $filters['search']) === 0)
+				if (stripos($row->get('tag'), $filters['search'] . ' ') === 0 || stripos($name, $filters['search'] . ' ') === 0)
 				{
-					array_unshift($json, $item);
+					$beginsWithWord[] = $item;
+				}
+				// Prioritize beginning of the string
+				elseif (stripos($row->get('tag'), $filters['search']) === 0 || stripos($name, $filters['search']) === 0)
+				{
+					$beginWith[] = $item;
 				}
 				else
 				{
 					$json[] = $item;
 				}
+			}
+		}
+
+		// Push matches that start with the search to the front
+		if (sizeof($beginWith))
+		{
+			// Sort the array
+			$name = array_column($beginWith, 'name');
+			array_multisort($name, SORT_DESC, SORT_NATURAL|SORT_FLAG_CASE , $beginWith);
+
+			foreach ($beginWith as $match)
+			{
+				array_unshift($json, $match);
+			}
+		}
+
+		// Push matches that begin with a word to the front
+		if (sizeof($beginsWithWord))
+		{
+			// Sort the array
+			$name = array_column($beginsWithWord, 'name');
+			array_multisort($name, SORT_DESC, SORT_NATURAL|SORT_FLAG_CASE, $beginsWithWord);
+
+			foreach ($beginsWithWord as $match)
+			{
+				array_unshift($json, $match);
 			}
 		}
 
