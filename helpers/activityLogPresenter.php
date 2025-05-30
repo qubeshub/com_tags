@@ -37,7 +37,7 @@ class ActivityLogPresenter
 				$decodedComments->entries = 0;
 			}
 
-			$entriesCount = count($decodedComments->entries);
+			$entriesCount = is_array($decodedComments) ? count($decodedComments->entries) : 0;
 			$objectId = isset($decodedComments->objectid) ? $decodedComments->objectid : 0;
 			$oldId =  isset($decodedComments->old_id) ? $decodedComments->old_id : 0;
 			$rawTag = isset($decodedComments->raw_tag) ? $decodedComments->raw_tag : '';
