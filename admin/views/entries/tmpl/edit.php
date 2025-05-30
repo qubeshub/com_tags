@@ -56,7 +56,7 @@ $this->js()
 
 			<div class="input-wrap" data-hint="<?php echo Lang::txt('COM_TAGS_FIELD_TAG_HINT'); ?>">
 				<label for="field-raw_tag"><?php echo Lang::txt('COM_TAGS_FIELD_RAW_TAG'); ?>: <span class="required"><?php echo Lang::txt('JOPTION_REQUIRED'); ?></span></label><br />
-				<input type="text" name="fields[raw_tag]" id="field-raw_tag" class="required" size="30" maxlength="250" value="<?php echo $this->escape(stripslashes($this->tag->get('raw_tag'))); ?>" />
+				<input type="text" name="fields[raw_tag]" id="field-raw_tag" class="required" size="30" maxlength="250" value="<?php echo $this->escape(stripslashes($this->tag->get('raw_tag',''))); ?>" />
 				<span class="hint"><?php echo Lang::txt('COM_TAGS_FIELD_TAG_HINT'); ?></span>
 			</div>
 
@@ -73,7 +73,7 @@ $this->js()
 
 			<div class="input-wrap">
 				<label for="field-description"><?php echo Lang::txt('COM_TAGS_FIELD_DESCRIPTION'); ?>:</label><br />
-				<?php echo $this->editor('fields[description]', stripslashes($this->tag->get('description')), 50, 4, 'field-description', array('class' => 'minimal', 'buttons' => false)); ?>
+				<?php echo $this->editor('fields[description]', stripslashes($this->tag->get('description','')), 50, 4, 'field-description', array('class' => 'minimal', 'buttons' => false)); ?>
 			</div>
 		</fieldset>
 	</div>
