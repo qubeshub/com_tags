@@ -579,7 +579,7 @@ class Tag extends Relational
 		// Loop through the associations and link them to a different tag
 		if (!Objct::copyTo($this->get('id'), $tag_id, $tbl))
 		{
-			$this->addError($to->getError());
+			$this->addError(Lang::txt('Failed to copy objects attached to tag.'));
 			return false;
 		}
 
