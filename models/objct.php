@@ -264,6 +264,8 @@ class Objct extends Relational
 				FROM `#__tags_object` O
 				WHERE O.tagid = ' . (int) $newtagid . $scope . ') new
 			ON old.objectid = new.objectid
+				AND old.tbl = new.tbl
+				AND old.label = new.label
 			WHERE new.id is null');
 		$ids = $db->query()->loadColumn();
 
