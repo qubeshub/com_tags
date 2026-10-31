@@ -203,7 +203,8 @@ class Focusareas extends AdminController
 		if (!is_null($parent)) { $ordering[$parent] = $old_ordering; }
 		$root_ids = array(); // New roots (for ordering adjustment later)
 		foreach ($new_fas as $fa) {
-			$new_fa = FocusArea::oneOrNew(isset($fa->id) ? $fa->id : 0);
+			$fa_id = isset($fa->id) ? $fa->id : 0;
+			$new_fa = FocusArea::oneOrNew($fa_id);
 			$id = $new_fa->id;
 			if (is_null($fa->parent)) { // Root
 				$root_ids[] = $id;
@@ -214,8 +215,8 @@ class Focusareas extends AdminController
 			if (!isset($ordering[$id])) { $ordering[$id] = 1; }
 			
 			// Save substitution (new focus area which has a negative id, or 0 for a new root)
-			if (intval($fa->id) <= 0) {
-				$subs[$fa->id] = $id;
+			if (intval($fa_id) <= 0) {
+				$subs[$fa_id] = $id;
 			}
 
 			// Use substitution to match new focus area id with correct parent focus area id
@@ -433,11 +434,11 @@ class Focusareas extends AdminController
 
 				// Make sure there are no duplicates, filter out from ancestors, and store as tags
 				$to_tags = array_reduce($to_aids, function($carry, $item) use ($from_anc) {
-					if (!in_array($item->tag_id, $from_anc) && (empty($carry) || !in_array($item->tag_id, array_keys($carry)))) {
+					if (!in_array($item->tag_id, $from_anc) && !isset($carry[$item->tag_id])) {
 						$carry[$item->tag_id] = $item->tag;
 					}
 					return $carry;
-				});
+				}, array());
 
 				// Get the table to copy associations from
 				$tbl = Request::getVar('table', '', 'post');

@@ -491,8 +491,8 @@ class FocusArea extends Relational
      * This method should be called from result of $self::fromObject
      * 
      * @param   array   $selected   Result of Cloud render method with $rtrn = 'search'
-     * 
-	 * @return  void
+     *
+	 * @return  integer  1 if every focus area meets its mandatory depth, 0 otherwise
 	 */
     public function checkStatus($selected)
 	{
@@ -504,12 +504,13 @@ class FocusArea extends Relational
         // Selected tags will be in parent.child form in focus area path order, e.g.
         //  resourcesqubes.teachingmaterial precedes teachingmaterial.instructionalsetting
         $depths = array(); foreach ($fas_tags as $fa) { $depths[$fa] = array($fa => 0); }
+        $fa = null;
         foreach ($selected as $tag) {
             $levels = explode('.', $tag);
             if (isset($depths[$levels[0]])) {
                 $fa = $levels[0];
             }
-            if (isset($depths[$fa][$levels[0]])) { // Needed in case tagged (i.e. selected) but alignment not set
+            if (count($levels) > 1 && $fa !== null && isset($depths[$fa][$levels[0]])) { // Needed in case tagged (i.e. selected) but alignment not set
                 $depths[$fa][$levels[1]] = $depths[$fa][$levels[0]] + 1;
             }
         }
@@ -517,7 +518,8 @@ class FocusArea extends Relational
         // Check depths against mandatory depth
         foreach ($this as $fa) {
             $tag = $fa->tag->get('tag');
-            if (max($depths[$tag]) < $fa->mandatory_depth) {
+            $depth = isset($depths[$tag]) ? max($depths[$tag]) : 0;
+            if ($depth < $fa->mandatory_depth) {
                 return 0;
             }
         }
