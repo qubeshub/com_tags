@@ -35,7 +35,7 @@ use Components\Tags\Models\Focusarea;
 						foreach ($this->focusareas as $focusarea)
 						{
                             $parent_label = ($focusarea->get('parent') ? Focusarea::oneOrFail($focusarea->get('parent'))->get('label') : 'None');
-							echo '<li>' . $this->escape(stripslashes($focusarea->get('label'))) . ' (Parent: ' . $this->escape($parent_label) . ')</li>' . "\n";
+							echo '<li>' . $this->escape(stripslashes((string) $focusarea->get('label'))) . ' (Parent: ' . $this->escape($parent_label) . ')</li>' . "\n";
 						}
 						?>
 					</ul>

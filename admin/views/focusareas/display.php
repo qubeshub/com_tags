@@ -95,22 +95,22 @@ Toolbar::help('focusareas');
 				<td class="priority-2">
 					<?php if ($canDo->get('core.edit')) { ?>
 						<a href="<?php echo Route::url('index.php?option=' . $this->option . '&controller=' . $this->controller . '&task=edit&id=' . $row->get('id')); ?>">
-							<?php echo $this->escape(stripslashes($row->get('label'))); ?>
+							<?php echo $this->escape(stripslashes((string) $row->get('label'))); ?>
 						</a>
 					<?php } else { ?>
 						<span>
-							<?php echo $this->escape(stripslashes($row->get('label'))); ?>
+							<?php echo $this->escape(stripslashes((string) $row->get('label'))); ?>
 						</span>
 					<?php } ?>
 				</td>
 				<td class="priority-3">
 					<?php if ($canDo->get('core.edit')) { ?>
 						<a href="<?php echo Route::url('index.php?option=' . $this->option . '&controller=' . $this->controller . '&task=edit&id=' . $row->get('id')); ?>">
-							<?php echo $this->escape(stripslashes($row->get('about'))); ?>
+							<?php echo $this->escape(stripslashes((string) $row->get('about'))); ?>
 						</a>
 					<?php } else { ?>
 						<span>
-							<?php echo $this->escape(stripslashes($row->get('about'))); ?>
+							<?php echo $this->escape(stripslashes((string) $row->get('about'))); ?>
 						</span>
 					<?php } ?>
 				</td>
