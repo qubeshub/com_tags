@@ -8,7 +8,8 @@
 // No direct access.
 defined('_HZEXEC_') or die();
 
-$url = Request::getString('base_url') ? Request::getString('base_url') . '/browse' : 'index.php?option=com_publications&active=browse';
+$base_url = Request::getString('base_url');
+$url = ($base_url && \Hubzero\Utility\Uri::isInternal($base_url)) ? $base_url . '/browse' : 'index.php?option=com_publications&active=browse';
 $html = '';
 switch ($this->stage) {
     case 'before':
@@ -18,7 +19,7 @@ switch ($this->stage) {
     break;
     case 'during':
         $html .= "<li class='fa-'>";
-        $html .= "<label style='display: inline;'" . ($this->child->about ? " title='" . htmlentities($this->child->about) . "' class='tooltips'" : "") . "><a href='" . Route::url($url . '?fl=' . $this->child->id) . "'>" . $this->child->label . "</a></label>";
+        $html .= '<label style="display: inline;"' . ($this->child->about ? ' title="' . $this->escape($this->child->about) . '" class="tooltips"' : '') . '><a rel="nofollow" href="' . $this->escape(Route::url($url . '?fl=' . (int) $this->child->id, false)) . '">' . $this->escape($this->child->label) . '</a></label>';
         $html .= $this->child->render('view', $this->props);
         $html .= "</li>";
     break;

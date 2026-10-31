@@ -307,7 +307,13 @@ class Focusareas extends AdminController
 	 */
 	public function cancelTask()
 	{
-		$return = Request::getString('return', 'index.php?option=' . $this->_option . '&controller=focusareas', 'get');
+		$return = Request::getString('return', '', 'get');
+
+		// Only return to a page on this hub
+		if (!$return || !\Hubzero\Utility\Uri::isInternal($return))
+		{
+			$return = 'index.php?option=' . $this->_option . '&controller=focusareas';
+		}
 
 		App::redirect(
 			Route::url($return, false)
@@ -330,7 +336,7 @@ class Focusareas extends AdminController
 
 		// Incoming
 		$ids = Request::getArray('id', array());
-		$ids = (!is_array($ids) ? array($ids) : $ids);
+		$ids = array_map('intval', (!is_array($ids) ? array($ids) : $ids));
 
 		$step = Request::getInt('step', 1);
 		$step = ($step) ? $step : 1;
@@ -384,7 +390,7 @@ class Focusareas extends AdminController
 					Notify::error("Did not specify a focus area to copy associations from");
 					$this->cancelTask();
 				}
-				$from_ids = explode(',', $from);
+				$from_ids = array_map('intval', explode(',', $from));
 
 				// Get each focus area
 				$from_tags = array_map(function($id) { 
@@ -404,7 +410,7 @@ class Focusareas extends AdminController
 					Notify::error("Did not specify a focus area to copy associations to");
 					$this->cancelTask();
 				}
-				$to_ids = explode(',', $to);
+				$to_ids = array_map('intval', explode(',', $to));
 
 				// Get ancestors of each focus area (if exists)
 				// Might need to create new focus area, so do that here
@@ -468,7 +474,7 @@ class Focusareas extends AdminController
 
 		// Incoming
 		$ids = Request::getArray('id', array());
-		$ids = (!is_array($ids) ? array($ids) : $ids);
+		$ids = array_map('intval', (!is_array($ids) ? array($ids) : $ids));
 
 		// Realign publications associated with focus areas
 		foreach ($ids as $id) {

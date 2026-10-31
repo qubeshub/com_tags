@@ -53,7 +53,7 @@ use Components\Tags\Models\Focusarea;
                         <?php
                         foreach ($this->tables as $table)
                         {
-                            echo '<option value="' . $table . '">' . $table . '</option>' . "\n";
+                            echo '<option value="' . $this->escape($table) . '">' . $this->escape($table) . '</option>' . "\n";
                         }
                         ?>
                     </select>

@@ -251,16 +251,16 @@ class Objct extends Relational
 		// This is a left outer join with exclusion (https://stevestedman.com/2015/03/mysql-join-types-poster/)
 		// This is a workaround for the fact that Hubzero's database abstraction layer doesn't support exclusion joins
 		// Refactors previous code that checked database for each individual object (this is more efficient)
-		$scope = ($tbl ? ' AND O.tbl = "' . $tbl . '"' : '');
 		$db = App::get('db');
+		$scope = ($tbl ? ' AND O.tbl = ' . $db->quote($tbl) : '');
 		$db->setQuery('SELECT old.id
 			FROM (SELECT *
 				FROM `#__tags_object` O
-				WHERE O.tagid = ' . $oldtagid . $scope . ') old
+				WHERE O.tagid = ' . (int) $oldtagid . $scope . ') old
 			LEFT JOIN
 				(SELECT *
 				FROM `#__tags_object` O
-				WHERE O.tagid = ' . $newtagid . $scope . ') new
+				WHERE O.tagid = ' . (int) $newtagid . $scope . ') new
 			ON old.objectid = new.objectid
 			WHERE new.id is null');
 		$ids = $db->query()->loadColumn();
