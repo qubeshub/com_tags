@@ -11,6 +11,9 @@ use Hubzero\Database\Relational;
 use Hubzero\Component\View;
 use Components\Tags\Models\Alignment;
 use stdClass;
+use Component;
+use Notify;
+use Request;
 
 require_once __DIR__ . DS . 'alignment.php';
 require_once __DIR__ . DS . 'log.php';

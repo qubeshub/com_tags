@@ -12,6 +12,12 @@ use Components\Tags\Models\FocusArea;
 use Components\Tags\Models\Tag;
 use Components\Tags\Models\Objct;
 use stdClass;
+use App;
+use Lang;
+use Notify;
+use Request;
+use Route;
+use User;
 
 /**
  * Tags controller class for managing raltionships between tags

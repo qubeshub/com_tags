@@ -12,6 +12,8 @@ use stdClass;
 use Lang;
 use Date;
 use User;
+use App;
+use Notify;
 
 require_once __DIR__ . DS . 'log.php';
 
