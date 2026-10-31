@@ -174,7 +174,7 @@ class FocusArea extends Relational
         $children = self::all()
             ->select('#__focus_areas.*')
             ->join('#__tags T', '#__focus_areas.tag_id', 'T.id')
-            ->whereEquals('#__focus_areas.parent', $this->id)
+            ->whereEquals('#__focus_areas.parent', (int) $this->id)
             ->order('#__focus_areas.ordering', 'ASC');
         return $children;
     }
@@ -197,7 +197,22 @@ class FocusArea extends Relational
     }
 
     /**
-	 * Retrieves one row by primary key, returning an initialized row if not found
+	 * Retrieves one row by primary key, returning a blank row if not found
+	 *
+	 * Unlike oneOrNew(), nothing is written, so this is safe on a lookup
+	 *
+	 * @param   mixed  $id  The primary key field value to use to retrieve one row
+	 * @return  \Hubzero\Database\Relational|static
+	 **/
+    public static function oneOrBlank($id) {
+        return parent::oneOrNew($id);
+    }
+
+    /**
+	 * Retrieves one row by primary key, creating (and saving) a new focus area
+	 * and its tag if not found
+	 *
+	 * Only call this when saving; use oneOrBlank() to look one up
 	 *
 	 * @param   mixed  $id  The primary key field value to use to retrieve one row
 	 * @return  \Hubzero\Database\Relational|static

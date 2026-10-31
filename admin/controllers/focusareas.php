@@ -134,7 +134,8 @@ class Focusareas extends AdminController
 			// Incoming
 			$ids = Request::getArray('id', array(0));
 
-			$fas = array_map(function($id) { return FocusArea::oneOrNew(intval($id)); }, $ids);
+			// A new focus area stays blank until it is saved
+			$fas = array_map(function($id) { return FocusArea::oneOrBlank(intval($id)); }, $ids);
 		} else {
 			// Should be one focus area object - turn into an array
 			$fas = array($fa);
@@ -180,7 +181,7 @@ class Focusareas extends AdminController
 
 		// Get original focus areas
 		$old_fas_ids = explode(',', $old_fas_ids);
-		$old_fas = array_merge(...array_map(function($id) { return FocusArea::oneOrNew(intval($id))->render('flat'); }, $old_fas_ids));
+		$old_fas = array_merge(...array_map(function($id) { return FocusArea::oneOrBlank(intval($id))->render('flat'); }, $old_fas_ids));
 
 		// Get new or updated focus areas
 		$new_fas = json_decode($flattree);
@@ -188,7 +189,8 @@ class Focusareas extends AdminController
 
 		// Delete 
 		$delete = array_filter($old_fas, function($fa) use ($new_fas_ids) {
-			return !in_array($fa->id, $new_fas_ids);
+			// An unsaved (new) focus area has nothing to delete
+			return $fa->id && !in_array($fa->id, $new_fas_ids);
 		});
 		foreach ($delete as $dmw) {
 			$fa = FocusArea::oneOrFail(intval($dmw->id));
@@ -211,13 +213,13 @@ class Focusareas extends AdminController
 			// Initialize ordering for this focus area's children
 			if (!isset($ordering[$id])) { $ordering[$id] = 1; }
 			
-			// Save substitution (new focus area which has a negative id)
-			if (intval($fa->id) < 0) {
+			// Save substitution (new focus area which has a negative id, or 0 for a new root)
+			if (intval($fa->id) <= 0) {
 				$subs[$fa->id] = $id;
 			}
 
-			// Use substitution to match negative focus area id with correct parent focus area id
-			if ($fa->parent && (intval($fa->parent) < 0)) {
+			// Use substitution to match new focus area id with correct parent focus area id
+			if (!is_null($fa->parent) && (intval($fa->parent) <= 0) && isset($subs[$fa->parent])) {
 				$fa->parent = $subs[$fa->parent];
 			}
 
@@ -412,12 +414,22 @@ class Focusareas extends AdminController
 				}
 				$to_ids = array_map('intval', explode(',', $to));
 
-				// Get ancestors of each focus area (if exists)
-				// Might need to create new focus area, so do that here
-				$to_aids = array_merge(...array_map(function($id) { 
-					$fa = FocusArea::oneOrNew($id);
+				// Only existing focus areas can be copied to; an unknown id is not a
+				// reason to create a blank one
+				$to_fas = array_filter(array_map(function($id) {
+					return FocusArea::oneOrBlank($id);
+				}, $to_ids), function($fa) {
+					return !$fa->isNew();
+				});
+				if (!count($to_fas)) {
+					Notify::error("Did not specify an existing focus area to copy associations to");
+					return $this->cancelTask();
+				}
+
+				// Get ancestors of each focus area
+				$to_aids = array_merge(...array_map(function($fa) {
 					return $fa->ancestors(1);
-				}, $to_ids));
+				}, array_values($to_fas)));
 
 				// Make sure there are no duplicates, filter out from ancestors, and store as tags
 				$to_tags = array_reduce($to_aids, function($carry, $item) use ($from_anc) {
